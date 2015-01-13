@@ -1,0 +1,45 @@
+1.) What is a sparce matrix?
+	A matrix in which most of the elements are 0. A matrix is often considdered sparse if there is enough 0 entries to be worth taking advantage of them. 
+	(Storage and work required to solve system)
+
+2.) Wikeipedia - http://en.wikipedia.org/wiki/Sparse_matrix
+	Iterative Methods For Sparse Linear Systems -http://www-users.cs.umn.edu/~saad/IterMethBook_2ndEd.pdf
+
+	Analogies - does this mean ways to represent a sparse matrix? if so:
+	- Compressed Row Storage
+	- Compressed Sparse Column
+	- Dictionary of keys
+	- Coordinate list
+	- etc
+
+3.) Sparse matricies are often used to solve partial differential equations (PDE) which arrise in all fields of engineering. PDE's model: 
+	- sound 
+	- heat
+	- electrostatics
+	- fluid flow
+	- vibration 
+	and more!
+
+	They are important in computer graphics to model:
+	- physical deformation
+	- mesh smoothing
+	- diffusion equations for terrain generation
+
+	Computing eigenvalues of these systems is often desired and to do so would require obtaining the determinate
+	We would want to be able to compute the product of 2 sparse matrices
+	Addition and subtraction
+	maybe a transpose? so we could find symmatry?
+
+
+
+Other Notes:
+============
+- I think we should use a hashtable as our data store, satisfying the O(p) complexity for the insertion of the m+1 element
+	-Keys will be [Row, Colum] (Or another dimensional index) [a,b,c, ... ,n]
+		-If that value is non-zero it will exist in the hashtable
+		-If that value is zero it will not exist in the hashtable
+
+- This also means the memory usage will satisfy O(km) where k << N
+
+- I'm not sure how the hashing algorithm works in Ruby, it's possible that the insertion / retrieval algorithm complexity would increase a lot if we had a HUGE matrix. 
+  Millions by Millions or something.

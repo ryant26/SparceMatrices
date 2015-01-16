@@ -41,6 +41,7 @@
 	- product
 	- determinant
 	- eigenvalues
+	- rank
 	
 	Transformations:
 	- inverse
@@ -62,6 +63,54 @@
 	- etc
 	
 
+4.) Tridiagonal Matricies are matricies where the only non-zero values exist on the main diagonal, the diagonal directly above and the diagonal directly
+	below. 
+
+5.) If the matrix is large enough, a tridiagonal matrix is also a sparse matrix?
+
+6.) Tridiagonal matrices are important because they have some well defined formula's for common operations. If we are able to leverage these formulas we could
+	increase the efficency of our operations.
+
+7.) A hashtable where the non-zero elements are stored with the key being their index is a good data representation. 
+
+8.) A hashtable would satisfy all of the constraints mentioned adding the m+1 element will be esentially constant. Since retrieval time is also essentially constant
+	it will not effect the efficency of the operation methods.
+
+9.) Delegate: Design pattern used to trasnfer the responsiblity for some opperation to another class. It is typically used for abstraction and to sepparate interface
+		from implementation.
+
+	Factory: Design pattern to create objects without exposing the instantiation logic to the client. Allows for extendability of the implementation without 
+		changing the the interface.
+
+	The patterns are applicable to our problem in the following way:
+		- The factory pattern can be used to generate a typical sparse matrix, or a tridiagonal matrix that share a common interface (operations)
+		- The delegation pattern will be important to have so as not to bloat the matrix classes with too much algorithmic logic. Instead we will have 
+			some kind of operations / algorithms helper class
+
+10.) *** Is he saying how will we implement the patterns? ****
+
+11.) Iteration in the sense of iterating over the entire matrix is not an efficient way to process sparse matrix operations. We are wasting cycles on interations we know will produce
+	a value of zero. Custom iteration will be required in that we will simply iterate across the non-zero values and perform our operations on those values. 
+
+12.) Exceptions:
+	- Improper format for matrix multiplication
+	- 0 non-zero entries
+	- determinate exception for non-square matricies
+	- *** any more? *****
+
+13.) Quick list: (Basing it off of the client description of needs)
+	- dimensions (NxN) what is N?
+	- number of non-zero values
+		- conversly, number of zero values?
+	- Tridiagonal, or not?
+
+14.) - Efficency is incredably important. Applications such as graphics rendering require quick solutions, if the clients system is meant to run in realtime efficency is important.
+		- Efficency referring mostly to the operations on the sparce matricies, and creation as well.
+	 - Reusability is important to the developer, a resuable package can be repurposed for other problems. 
+	 - Testability? 
+	 - Maintainability?
+
+15.) This will take soem more thinking. 
 
 Other Notes:
 ============

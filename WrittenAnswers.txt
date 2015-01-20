@@ -38,10 +38,12 @@
 	Operations:
 	- addition
 	- subtraction
-	- product
+	- matrix product
+        - scalar product
 	- determinant
 	- eigenvalues
 	- rank
+        - linear system solution (given b and invertible A for Ax = b)
 	
 	Transformations:
 	- inverse
@@ -54,6 +56,7 @@
 	- isIdentity
 	- isZero
 	- isInvertible
+        - isSingular
 	
 	Our users may desire complex-valued matrix elements.
 	So, if necessary, project scope may be increased by supporting complex matrices and relevant operations:
@@ -123,3 +126,40 @@ Other Notes:
 
 - I'm not sure how the hashing algorithm works in Ruby, it's possible that the insertion / retrieval algorithm complexity would increase a lot if we had a HUGE matrix. 
   Millions by Millions or something.
+
+
+Invariants
+==========
+
+- A.width == A.depth (== A.size)
+
+- A.nonzeroCoords.any?{ |x| x.any? { |i| i < 0 } } == false
+    i.e. no coordinate less than zero
+- A.nonzeroCoords.any?{ |i, j| i >= N || j >= N } == false
+    i.e. no coordinate greater than or equal to size N
+
+- number of coordinates for a value must be exactly 2
+
+- only one value per coordinate pair
+
+- A.length <= N*N / 2
+
+- if A.width !== B.depth then A*B == nil
+
+- numerical elements only
+
+- matrix A is not invertible iff A.determinant == 0
+- if matrix A is invertible then A * A.inverse == identity
+- matrix A is invertible iff matrix A is not singular
+
+- if A.invertible == true then A.transpose.isInvertible == true
+- if A.invertible == true then A.inverse.determinant == 1/(A.determinant)
+- if A.invertible == true then A.eigenvalues.include? 0 == false
+- linear system solutions only possible for invertible matrices
+- linear system solution for zero vector with invertible matrix is zero vector
+
+TriDiagonal:
+
+- no nonzero values other than on diagonal, subdiagonal, and superdiagonal
+
+

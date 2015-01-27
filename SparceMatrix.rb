@@ -6,27 +6,24 @@
 
 
 class SparceMatrix
+	attr_reader :matrix
 	private
-	@matrix
 	@dimension
 
-	# These 2 are pretty bad, should be 1-liners, considder refactoring
+
+	# returns true and yields a block if the passed point has nonzero value
 	def nonZero?(point)
-		if @matrix.key?point
-			yield if block_given?
-			true
-		else
-			false
-		end
+		return false unless @matrix.key?point
+
+		yield if block_given?
+		true
 	end
 
 	def zero?(point)
-		if nonZero? (point)
-			false
-		else
-			yield if block_given?
-			true
-		end
+		return false unless nonZero? (point)
+
+		yield if block_given?
+		true
 	end
 
 	public
@@ -48,21 +45,41 @@ class SparceMatrix
 		end
 	end
 
-	def add(matrix)
-		@matrix.merge!(matrix.getDataBacking) { |key, oldval, newval| oldval + newval }
-	end
-
-	def subtract(matrix)
-		# Doesn't check if the subtraction makes an element 0
-		# if it does it should be taken out of the hash
-		matrix.getDataBacking.each do |key, value|
-			nonZero?(key) { @matrix[key] -= value}
-			zero?(key) {@matrix[key] = -value}
+	# Identical to hash.merge!, but clears zero values from map
+	def sparseMerge!(matrix)
+		matrix.matrix.each do |key, val|
+			# 
+			if @matrix.key?(key)
+				new = yield key, @matrix[key], val
+				# set new value or delete if new value is zero
+				if new == 0
+					@matrix.delete(key)
+				else
+					@matrix[key] = new
+				end
+			else
+				new = yield key, 0, val
+				# set new value if nonzero
+				@matrix[key] = new unless new == 0
+			end
 		end
 	end
 
-	def getDataBacking
-		@matrix
+	def add(matrix)
+		sparseMerge!(matrix) { |key, oldval, newval| oldval + newval }
+	end
+
+	def subtract(matrix)
+		sparseMerge!(matrix) { |key, oldval, newval| oldval - newval }
+	end
+
+	# Multiplies each value of the matrix by the scalar
+	def scalarMultiply(scalar)
+		if scalar == 0
+			@matrix = {} 
+		else
+			@matrix.each { |key, val| @matrix[key] = val * scalar }
+		end
 	end
 
 	def to_s
@@ -92,3 +109,11 @@ puts myMAt2
 puts "-------------2  -   1---------------"
 myMAt2.subtract(myMAt)
 puts myMAt2
+
+
+puts "-------------Matrix 3---------------"
+m = SparceMatrix.new(5)
+puts m
+puts "-------------  * -3  ---------------"
+m.scalarMultiply(-3)
+puts m

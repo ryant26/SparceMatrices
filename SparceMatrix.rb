@@ -22,10 +22,10 @@ class SparceMatrix
 
 	def zero?(point)
 		if nonZero? (point)
-			true
+			false
 		else
 			yield if block_given?
-			false
+			true
 		end
 	end
 

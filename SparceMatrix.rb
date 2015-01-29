@@ -4,12 +4,21 @@
 # add and subtract are working (Without and pre or post checks)
 	# when adding matricies of the same size
 
-
+#
+# internal syntax note: matrix coordinates are in row, column order.
+# 	EX: [3, 1] is the only nonzero entry of the following 5x3 matrix
+# 	    
+# 	    | 0 0 0 |
+# 	    | 0 0 0 |
+# 	    | 0 0 0 |
+# 	    | 0 7 0 |
+# 	    | 0 0 0 |
+#
 class SparceMatrix
 	attr_reader :matrix
 	private
-	@dimension
-
+	@rowCount
+	@colCount
 
 	# returns true and yields a block if the passed point has nonzero value
 	def nonZero?(point)
@@ -19,6 +28,7 @@ class SparceMatrix
 		true
 	end
 
+	# returns true and yields a block if the passed point has zero value
 	def zero?(point)
 		return false unless nonZero? (point)
 
@@ -26,19 +36,53 @@ class SparceMatrix
 		true
 	end
 
+	# precond
+	# 	dim must be an integer > 1 or a 2-member array of integer > 1
+	# postcond
+	# 	will set the instance members rowCount and colCount
+	private
+	def setDimensions(dim)
+		# inspect dimension
+		if dim.is_a? Array
+			@rowCount, @colCount = dim[0], dim[1]
+		else
+			@rowCount, @colCount = dim, dim
+		end
+	end
+
+	# precond
+	# 	dim must be supplied.  see setDimensions precond
+	# postcond
+	# 	
+	# note
+	# 	rather than boolean switches and overloaded methods for initialization,
+	# 	factory pattern should be employed: (separate class? SparseFactory?)
+	# 	- .newMatrix(rowCount, colCount)
+	# 	- .newSquare(size)
+	# 	- .newIdentity(size) # implicitly square
+	# 	- .newTridiagonal(size) # returns subclass!!
+	# 		- 
+	# 	also, a randomly populated matrix initializer is likely of
+	# 	limited value beyond initial testing.
 	public
-	def initialize(dim, nonZero=dim/2)
-		@dimension = dim
+	def initialize(dim, nonZero=nil)
+
+		setDimensions(dim)
+
 		@matrix = Hash.new
-		nonZero.times do
+
+		puts @rowCount
+		puts @colCount
+
+		(nonZero ? nonZero : @rowCount * @colCount / 2).times do
 			while (true) do
-				x = Random.rand(nonZero)
-				y = Random.rand(nonZero)
-				if @matrix.include?([x, y])
+				i = Random.rand(@rowCount)
+				j = Random.rand(@colCount)
+				if @matrix.include?([i, j])
 					next
 				else
 					# HARD CODED LIMIT OF THE NON-ZERO VALUES
-					@matrix[[x, y]] = Random.rand(10)
+					@matrix[[i, j]] = Random.rand(10)
 					break
 				end
 			end
@@ -82,12 +126,21 @@ class SparceMatrix
 		end
 	end
 
+	# scales to large matrices without creating huge strings - zeros omitted
+	# prints coordinate value pairs sorted by coordinate, i,j : <val>
+	def to_s_minimal
+		str = ""
+		@matrix.each { |key, val| str += "TODO" }
+		str
+	end
+
+	# does not scale to large sparse matrices - all values printed
 	def to_s
 		#This looks bad when there are long (many digit) non-zero elements
-		@dimension.times do |x|
+		@rowCount.times do |i|
 			print "|"
-			@dimension.times do |y|
-				print @matrix.has_key?([x, y]) ? @matrix[[x, y]] : "0"
+			@colCount.times do |j|
+				print @matrix.has_key?([i, j]) ? @matrix[[i, j]] : "0"
 				print " "
 			end
 			puts "|"

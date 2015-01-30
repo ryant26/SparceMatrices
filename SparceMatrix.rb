@@ -15,7 +15,9 @@
 # 	    | 0 0 0 |
 #
 class SparceMatrix
+	protected
 	attr_reader :matrix
+
 	private
 	@rowCount
 	@colCount
@@ -70,9 +72,6 @@ class SparceMatrix
 		setDimensions(dim)
 
 		@matrix = Hash.new
-
-		puts @rowCount
-		puts @colCount
 
 		(nonZero ? nonZero : @rowCount * @colCount / 2).times do
 			while (true) do
@@ -159,7 +158,7 @@ puts myMAt2
 puts "-------------1  +   2---------------"
 myMAt2.add(myMAt)
 puts myMAt2
-puts "-------------2  -   1---------------"
+puts "---------above  -   1---------------"
 myMAt2.subtract(myMAt)
 puts myMAt2
 

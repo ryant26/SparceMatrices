@@ -1,3 +1,5 @@
+require 'minitest'
+
 # This is the begging of the sparce matrix class
 # Wanted to start to get a feeling of how it was going to work
 

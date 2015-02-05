@@ -1,11 +1,5 @@
 require 'minitest'
 
-# This is the begging of the sparce matrix class
-# Wanted to start to get a feeling of how it was going to work
-
-# add and subtract are working (Without and pre or post checks)
-	# when adding matricies of the same size
-
 #
 # internal syntax note: matrix coordinates are in row, column order.
 # 	EX: [3, 1] is the only nonzero entry of the following 5x3 matrix
@@ -23,6 +17,15 @@ class SparceMatrix
 	private
 	@rowCount
 	@colCount
+
+	# I REALLY don't think that hashing some symbol argument like :zeros or :tridiagonal
+	# is any better than having 10 methods that create what you want. In both cases
+	# you have to actually know what you want so I think we should do somehting more like this
+	def self.createMatrixFromPercentFull(percent)end
+
+	def self.createTridiagonal(height, width)end
+
+	def self.createZeros(height, width)end
 
 	# returns true and yields a block if the passed point has nonzero value
 	def nonZero?(point)
@@ -110,12 +113,16 @@ class SparceMatrix
 		end
 	end
 
+	# Should scalar add turn the sparse matrix into a normal one? Or simply add to the non-zero elem?
 	def add(matrix)
-		sparseMerge!(matrix) { |key, oldval, newval| oldval + newval }
+		runSparseOperation(matrix) { sparseMerge!(matrix) { |key, oldval, newval| oldval + newval } }
+		runScalarOperation(matrix) { @matrix.each {|key, val| setElement(key, val + matrix) } }
 	end
-
+	
+	# Should scalar sub turn the sparse matrix into a normal one? Or simply sub from the non-zero elem?
 	def subtract(matrix)
-		sparseMerge!(matrix) { |key, oldval, newval| oldval - newval }
+		runSparseOperation(matrix) { sparseMerge!(matrix) { |key, oldval, newval| oldval - newval } }
+		runScalarOperation(matrix) { @matrix.each {|key, val| setElement(key, matrix - val) } } 
 	end
 
 	# Multiplies each value of the matrix by the scalar
@@ -127,6 +134,14 @@ class SparceMatrix
 		end
 	end
 
+	# For running opperations when we expect matrix to be of sparse type
+	def runSparseOperation(matrix)
+		yield if matrix.respond_to?(:matrix)
+	end
+
+	def runScalarOperation(input)
+		yield if input.is_a? Numeric
+	end
 	# scales to large matrices without creating huge strings - zeros omitted
 	# prints coordinate value pairs sorted by coordinate, i,j : <val>
 	def to_s_minimal
@@ -146,6 +161,19 @@ class SparceMatrix
 			end
 			puts "|"
 		end
+	end
+
+	def setElement(key, value)
+		if value == 0
+			@matrix.delete(key)
+		else
+			@matrix[key] = value
+		end
+			
+	end
+
+	def getElement(key)
+		@matrix[key]
 	end
 
 end
@@ -170,4 +198,11 @@ m = SparceMatrix.new(5)
 puts m
 puts "-------------  * -3  ---------------"
 m.scalarMultiply(-3)
+puts m
+
+puts "-------------Matrix 4---------------"
+m = SparceMatrix.new(10)
+puts m
+puts "------------- +5     ---------------"
+m.add(5)
 puts m

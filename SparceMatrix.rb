@@ -76,7 +76,7 @@ class SparceMatrix
 
 		setDimensions(dim)
 
-		@matrix = Hash.new
+		@matrix = Hash.new(0)
 
 		(nonZero ? nonZero : @rowCount * @colCount / 2).times do
 			while (true) do
@@ -96,20 +96,7 @@ class SparceMatrix
 	# Identical to hash.merge!, but clears zero values from map
 	def sparseMerge!(matrix)
 		matrix.matrix.each do |key, val|
-			# 
-			if @matrix.key?(key)
-				new = yield key, @matrix[key], val
-				# set new value or delete if new value is zero
-				if new == 0
-					@matrix.delete(key)
-				else
-					@matrix[key] = new
-				end
-			else
-				new = yield key, 0, val
-				# set new value if nonzero
-				@matrix[key] = new unless new == 0
-			end
+			setElement(key, (yield key, @matrix[key], val))
 		end
 	end
 

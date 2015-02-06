@@ -18,30 +18,12 @@ class SparceMatrix
 	@rowCount
 	@colCount
 
-	# I REALLY don't think that hashing some symbol argument like :zeros or :tridiagonal
-	# is any better than having 10 methods that create what you want. In both cases
-	# you have to actually know what you want so I think we should do somehting more like this
+	# --------------------Factory Methods-------------------------
 	def self.createMatrixFromPercentFull(percent)end
 
 	def self.createTridiagonal(height, width)end
 
 	def self.createZeros(height, width)end
-
-	# returns true and yields a block if the passed point has nonzero value
-	def nonZero?(point)
-		return false unless @matrix.key?point
-
-		yield if block_given?
-		true
-	end
-
-	# returns true and yields a block if the passed point has zero value
-	def zero?(point)
-		return false unless nonZero? (point)
-
-		yield if block_given?
-		true
-	end
 
 	# precond
 	# 	dim must be an integer > 1 or a 2-member array of integer > 1
@@ -93,49 +75,31 @@ class SparceMatrix
 		end
 	end
 
-	# Identical to hash.merge!, but clears zero values from map
-	def sparseMerge!(matrix)
-		matrix.matrix.each do |key, val|
-			setElement(key, (yield key, @matrix[key], val))
-		end
-	end
+	# ----------------------------Arithmatic-------------------------------
 
 	# Should scalar add turn the sparse matrix into a normal one? Or simply add to the non-zero elem?
 	def add(matrix)
-		runSparseOperation(matrix) { sparseMerge!(matrix) { |key, oldval, newval| oldval + newval } }
-		runScalarOperation(matrix) { @matrix.each {|key, val| setElement(key, val + matrix) } }
+		sparseMerge!(matrix) { |key, oldval, newval| oldval + newval }
 	end
 	
 	# Should scalar sub turn the sparse matrix into a normal one? Or simply sub from the non-zero elem?
 	def subtract(matrix)
-		runSparseOperation(matrix) { sparseMerge!(matrix) { |key, oldval, newval| oldval - newval } }
-		runScalarOperation(matrix) { @matrix.each {|key, val| setElement(key, matrix - val) } } 
+		sparseMerge!(matrix) { |key, oldval, newval| oldval - newval }
 	end
 
-	# Multiplies each value of the matrix by the scalar
-	def scalarMultiply(scalar)
-		if scalar == 0
-			@matrix = {} 
-		else
-			@matrix.each { |key, val| @matrix[key] = val * scalar }
+	def multiply(matrix)
+		if matrix.respond_to? :matrix
+			@matrix.each { |key, value| setElement(key, matrix.getElement(key) * value)}
+		elsif matrix.is_a? Numeric
+			@matrix.each { |key, value| setElement(key,matrix * value)}
 		end
 	end
+				
 
-	# For running opperations when we expect matrix to be of sparse type
-	def runSparseOperation(matrix)
-		yield if matrix.respond_to?(:matrix)
-	end
+	# ---------------------------Properties---------------------------------
 
-	def runScalarOperation(input)
-		yield if input.is_a? Numeric
-	end
-	# scales to large matrices without creating huge strings - zeros omitted
-	# prints coordinate value pairs sorted by coordinate, i,j : <val>
-	def to_s_minimal
-		str = ""
-		@matrix.each { |key, val| str += "TODO" }
-		str
-	end
+
+	# ---------------------Ruby Overrides (or similar)----------------------
 
 	# does not scale to large sparse matrices - all values printed
 	def to_s
@@ -150,6 +114,16 @@ class SparceMatrix
 		end
 	end
 
+	# scales to large matrices without creating huge strings - zeros omitted
+	# prints coordinate value pairs sorted by coordinate, i,j : <val>
+	def to_s_minimal
+		str = ""
+		@matrix.each { |key, val| str += "TODO" }
+		str
+	end
+
+	# ------------------------------Infastructure-----------------------------
+
 	def setElement(key, value)
 		if value == 0
 			@matrix.delete(key)
@@ -161,6 +135,13 @@ class SparceMatrix
 
 	def getElement(key)
 		@matrix[key]
+	end
+
+	# Identical to hash.merge!, but clears zero values from map
+	def sparseMerge!(matrix)
+		matrix.matrix.each do |key, val|
+			setElement(key, (yield key, @matrix[key], val))
+		end
 	end
 
 end

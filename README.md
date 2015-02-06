@@ -3,6 +3,8 @@
 ## newDirection Branch
 - We no longer support operations with scalars except multiply (This is how the Ruby matrix class works)
 
+- Arithmatic returns a new sparse matrix class does not mutate the current one
+
 - We aren't compatible with the ruby matrix class
 	- If a dense matrix is created through some order of operations, you simply loose the benifits
 	of sparseness, and countinue with our subset of opperations and use our algorithms.

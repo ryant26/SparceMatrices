@@ -10,7 +10,7 @@ require 'minitest'
 # 	    | 0 7 0 |
 # 	    | 0 0 0 |
 #
-class SparceMatrix
+class SparseMatrix
 	protected
 	attr_reader :matrix
 
@@ -19,80 +19,63 @@ class SparceMatrix
 	@colCount
 
 	# --------------------Factory Methods-------------------------
-	def self.createMatrixFromPercentFull(percent)end
-
-	def self.createTridiagonal(height, width)end
-
-	def self.createZeros(height, width)end
-
-	# precond
-	# 	dim must be an integer > 1 or a 2-member array of integer > 1
-	# postcond
-	# 	will set the instance members rowCount and colCount
-	private
-	def setDimensions(dim)
-		# inspect dimension
-		if dim.is_a? Array
-			@rowCount, @colCount = dim[0], dim[1]
-		else
-			@rowCount, @colCount = dim, dim
+	def self.CreateMatrixFromPercentFull(rows, cols, percent)
+		result = SparseMatrix.Zeros(rows, cols)
+		nonZero = (rows * cols * percent).floor
+		random = Random.new
+		nonZero.times do 
+			result.setElement([random.rand(rows), random.rand(cols)], random.rand(0..100))
 		end
+		result
 	end
 
-	# precond
-	# 	dim must be supplied.  see setDimensions precond
-	# postcond
-	# 	
-	# note
-	# 	rather than boolean switches and overloaded methods for initialization,
-	# 	factory pattern should be employed: (separate class? SparseFactory?)
-	# 	- .newMatrix(rowCount, colCount)
-	# 	- .newSquare(size)
-	# 	- .newIdentity(size) # implicitly square
-	# 	- .newTridiagonal(size) # returns subclass!!
-	# 		- 
-	# 	also, a randomly populated matrix initializer is likely of
-	# 	limited value beyond initial testing.
-	public
-	def initialize(dim, nonZero=nil)
+	def self.CreateTridiagonal(height, width)end
 
-		setDimensions(dim)
+	def self.Zeros(height, width)
+		SparseMatrix.new(height, width)
+	end
 
-		@matrix = Hash.new(0)
-
-		(nonZero ? nonZero : @rowCount * @colCount / 2).times do
-			while (true) do
-				i = Random.rand(@rowCount)
-				j = Random.rand(@colCount)
-				if @matrix.include?([i, j])
-					next
-				else
-					# HARD CODED LIMIT OF THE NON-ZERO VALUES
-					@matrix[[i, j]] = Random.rand(10)
-					break
-				end
+	def self.Build(height, width)
+		result = SparseMatrix.new(height, width)
+		height.times do |i|
+			width.times do |j|
+				result.setElement([i,j], (yield i, j))
 			end
 		end
+		result
+	end
+	
+	public
+	def initialize(rows, columns)
+		@matrix = Hash.new(0)
+		@rowCount = rows
+		@colCount = columns
 	end
 
 	# ----------------------------Arithmatic-------------------------------
 
 	# Should scalar add turn the sparse matrix into a normal one? Or simply add to the non-zero elem?
 	def add(matrix)
-		sparseMerge!(matrix) { |key, oldval, newval| oldval + newval }
+		result = clone
+		result.sparseMerge!(matrix) { |key, oldval, newval| oldval + newval }
+		return result
 	end
 	
 	# Should scalar sub turn the sparse matrix into a normal one? Or simply sub from the non-zero elem?
 	def subtract(matrix)
-		sparseMerge!(matrix) { |key, oldval, newval| oldval - newval }
+		result = clone
+		result.sparseMerge!(matrix) { |key, oldval, newval| oldval - newval }
+		return result
 	end
 
 	def multiply(matrix)
-		if matrix.respond_to? :matrix
-			@matrix.each { |key, value| setElement(key, matrix.getElement(key) * value)}
+		result = clone
+		if matrix.respond_to? :getElement
+			result.matrix.each { |key, value| result.setElement(key, matrix.getElement(key) * value)}
 		elsif matrix.is_a? Numeric
-			@matrix.each { |key, value| setElement(key,matrix * value)}
+			result.matrix.each { |key, value| result.setElement(key, matrix * value)}
 		end
+		return result
 	end
 				
 
@@ -105,10 +88,9 @@ class SparceMatrix
 	def to_s
 		#This looks bad when there are long (many digit) non-zero elements
 		@rowCount.times do |i|
-			print "|"
+			print "| "
 			@colCount.times do |j|
-				print @matrix.has_key?([i, j]) ? @matrix[[i, j]] : "0"
-				print " "
+				print "#{getElement([i,j])} "
 			end
 			puts "|"
 		end
@@ -137,6 +119,19 @@ class SparceMatrix
 		@matrix[key]
 	end
 
+	# precond
+	# 	dim must be an integer > 1 or a 2-member array of integer > 1
+	# postcond
+	# 	will set the instance members rowCount and colCount
+	def setDimensions(dim)
+		# inspect dimension
+		if dim.is_a? Array
+			@rowCount, @colCount = dim[0], dim[1]
+		else
+			@rowCount, @colCount = dim, dim
+		end
+	end
+
 	# Identical to hash.merge!, but clears zero values from map
 	def sparseMerge!(matrix)
 		matrix.matrix.each do |key, val|
@@ -144,33 +139,28 @@ class SparceMatrix
 		end
 	end
 
+	def clone()
+		result = SparseMatrix.Zeros(@rowCount, @colCount)
+		@matrix.each { |key, val| result.setElement(key, val)}
+		return result
+	end
+
 end
 
 
-myMAt = SparceMatrix.new(5)
-myMAt2 = SparceMatrix.new(5)
+myMAt = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.5)
+myMAt2 = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.25)
 puts "------------ Matrix 1---------------"
 puts myMAt
 puts "-------------Matrix 2---------------"
 puts myMAt2
 puts "-------------1  +   2---------------"
-myMAt2.add(myMAt)
-puts myMAt2
-puts "---------above  -   1---------------"
-myMAt2.subtract(myMAt)
-puts myMAt2
-
+puts myMAt2.add(myMAt)
+puts "-------------2  -   1---------------"
+puts myMAt2.subtract(myMAt)
 
 puts "-------------Matrix 3---------------"
-m = SparceMatrix.new(5)
+m = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.75)
 puts m
 puts "-------------  * -3  ---------------"
-m.scalarMultiply(-3)
-puts m
-
-puts "-------------Matrix 4---------------"
-m = SparceMatrix.new(10)
-puts m
-puts "------------- +5     ---------------"
-m.add(5)
-puts m
+puts m.multiply(-3)

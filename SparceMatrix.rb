@@ -14,10 +14,11 @@ class SparseMatrix
 	protected
 	attr_reader :matrix
 
+	
+	
 	private
 	@rowCount
 	@colCount
-
 	# --------------------Factory Methods-------------------------
 	def self.CreateMatrixFromPercentFull(rows, cols, percent)
 		result = SparseMatrix.Zeros(rows, cols)
@@ -32,6 +33,12 @@ class SparseMatrix
 
 	def self.Zeros(height, width)
 		SparseMatrix.new(height, width)
+	end
+
+	def self.Identity(size)
+		out = SparseMatrix.new(size, size)
+		(1..size).each { |x| out.setElement([x, x], 1)}
+		out
 	end
 
 	def self.Build(height, width)
@@ -50,6 +57,8 @@ class SparseMatrix
 		@rowCount = rows
 		@colCount = columns
 	end
+
+
 
 	# ----------------------------Arithmatic-------------------------------
 
@@ -72,15 +81,25 @@ class SparseMatrix
 	# pre matrix should be correct dimensions
 	# post matrix should be correct dimensions
 	def multiply(matrix)
-		result = clone
+		#DOK was a bad data choice for ordered iteration, we could considder a to_a function thtat uses another format possibly
+		result = SparseMatrix.Zeros(@rowCount, @colCount)
 		if matrix.respond_to? :getElement
-			result.matrix.each { |key, value| result.setElement(key, matrix.getElement(key) * value)}
+			(1..@rowCount).each do |i|
+				(1..@colCount).each do |k|
+					sum = 0
+					(1..@colCount).each do |j|
+						if (@matrix.key?([i,j]))
+							sum += getElement([i,j]) * matrix.getElement([j, k])
+						end
+					end
+					result.setElement([i, k], sum)
+				end
+			end
 		elsif matrix.is_a? Numeric
 			result.matrix.each { |key, value| result.setElement(key, matrix * value)}
 		end
 		return result
 	end
-				
 
 	# ---------------------------Properties---------------------------------
 
@@ -105,6 +124,7 @@ class SparseMatrix
 		matrix.each {|key, val| puts "#{key} #{val}"}
 	end
 
+	
 	# ------------------------------Infastructure-----------------------------
 
 	def setElement(key, value)
@@ -113,12 +133,12 @@ class SparseMatrix
 		else
 			@matrix[key] = value
 		end
-			
 	end
 
 	def getElement(key)
 		@matrix[key]
 	end
+
 
 	# precond
 	# 	dim must be an integer > 1 or a 2-member array of integer > 1
@@ -146,27 +166,56 @@ class SparseMatrix
 		return result
 	end
 
- 	#This is to make the cholsky Factorization faster
-	def colSort()
-		#Idea 1: a column sorted single array, wont work
-		#@matrix.keys.sort {|a, b| (a[1] * @rowCount + a[0]) <=> (b[1] * @rowCount + b[0])}.map {|x| @matrix[x]}
-
-		#Idea 2: a list of lists, would work, but this code isnt working
-		#out = Array.new(@colCount, [])
-		#@matrix.each {|key, value| out[key[1]-1] << key}
-		#out.each {|x| x.sort {|a,b| a[0] <=> b[0]}}
-		#out.each {|x| x.map!{|y| @matrix[y]}}
-		#out
+	#precondit must be square
+	def decompose()
+		pivot =  getPivot
+		temp = pivot * self
+		u = SparseMatrix.Zeros(@rowCount, @colCount)
+		l = SparseMatrix.Identity(@colCount)
+		(1..@rowCount).each do |i|
+			(1..@colCount).each do |j|
+				if j >= i 
+					#working on upper half
+					u.setElement([i,j], ( temp.getElement([i,j]) - (1..i).inject(0.0) {|sum, k| sum + u.getElement([k, j]) * l.getElement([i, k])} ) )
+				else
+					#working on lower half
+					l.setElement([i,j], ( temp.getElement([i,j]) - (1..j).inject(0.0) {|sum, k| sum + u.getElement([k, j]) * l.getElement([i, k])} ) / u.getElement([j, j]) )
+				end
+			end
+		end
+		[l,u,pivot]
 	end
 
-	def factorize()
-		# this is the poor way where we iterate over values we know to be zero
-		# colSort() was an attempt to fix this, but there is a trade off....
-		out = clone()
+	#precondit must be square
+	def getPivot() 
+		id = SparseMatrix.Identity(@rowCount)
 		(1..@colCount).each do |j|
-
+			max = getElement([j, j])
+			row = j
+			(j..@rowCount).each do |i|
+				if getElement([i,j]) > max
+					max = getElement([i,j])
+					row = i
+				end
+			end
+			id.swapRow([j,j], [row, row])
+		end
+		id
 	end
 
+	def swapRow(key1, key2)
+		val1 = getElement(key1)
+		val2 = getElement(key2)
+		@matrix.delete(key1)
+		@matrix.delete(key2)
+
+		setElement([key2[0], key1[1]], val1)
+		setElement([key1[0], key2[1]], val2)
+	end
+
+	alias * multiply
+	alias + add
+	alias - subtract
 end
 
 
@@ -186,4 +235,28 @@ m = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.75)
 puts m
 puts "-------------  * -3  ---------------"
 puts m.multiply(-3)
-puts m.colSort
+puts SparseMatrix.Identity(10)
+
+puts "----------------Testing Decomposition--------------"
+m = SparseMatrix.Zeros(3,3)
+m.setElement([1,1], 1)
+m.setElement([1,2], 3)
+m.setElement([1,3], 5)
+m.setElement([2,1], 2)
+m.setElement([2,2], 4)
+m.setElement([2,3], 7)
+m.setElement([3,1], 1)
+m.setElement([3,2], 1)
+m.setElement([3,3], 0)
+puts "---------------------- orig------------------------"
+puts m
+a = 2
+puts "---------------------- pivot------------------------"
+out = m.decompose
+puts "---------------------- L ---------------------------"
+puts out[0]
+puts "---------------------- U ---------------------------"
+puts out[1]
+puts "---------------------- P ---------------------------"
+puts out[2]
+

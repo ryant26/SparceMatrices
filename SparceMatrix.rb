@@ -22,9 +22,8 @@ class SparseMatrix
 	def self.CreateMatrixFromPercentFull(rows, cols, percent)
 		result = SparseMatrix.Zeros(rows, cols)
 		nonZero = (rows * cols * percent).floor
-		random = Random.new
 		nonZero.times do 
-			result.setElement([random.rand(rows), random.rand(cols)], random.rand(0..100))
+			result.setElement([rand(1..rows), rand(1..cols)], rand(1..100))
 		end
 		result
 	end
@@ -54,20 +53,24 @@ class SparseMatrix
 
 	# ----------------------------Arithmatic-------------------------------
 
-	# Should scalar add turn the sparse matrix into a normal one? Or simply add to the non-zero elem?
+	# pre matrix should be same size
+	# post matrix should be same size
 	def add(matrix)
 		result = clone
 		result.sparseMerge!(matrix) { |key, oldval, newval| oldval + newval }
 		return result
 	end
 	
-	# Should scalar sub turn the sparse matrix into a normal one? Or simply sub from the non-zero elem?
+	# pre matrix should be same size
+	# post matrix should be same size
 	def subtract(matrix)
 		result = clone
 		result.sparseMerge!(matrix) { |key, oldval, newval| oldval - newval }
 		return result
 	end
 
+	# pre matrix should be correct dimensions
+	# post matrix should be correct dimensions
 	def multiply(matrix)
 		result = clone
 		if matrix.respond_to? :getElement
@@ -87,9 +90,9 @@ class SparseMatrix
 	# does not scale to large sparse matrices - all values printed
 	def to_s
 		#This looks bad when there are long (many digit) non-zero elements
-		@rowCount.times do |i|
+		(1..@rowCount).each do |i|
 			print "| "
-			@colCount.times do |j|
+			(1..@colCount).each do |j|
 				print "#{getElement([i,j])} "
 			end
 			puts "|"
@@ -99,9 +102,7 @@ class SparseMatrix
 	# scales to large matrices without creating huge strings - zeros omitted
 	# prints coordinate value pairs sorted by coordinate, i,j : <val>
 	def to_s_minimal
-		str = ""
-		@matrix.each { |key, val| str += "TODO" }
-		str
+		matrix.each {|key, val| puts "#{key} #{val}"}
 	end
 
 	# ------------------------------Infastructure-----------------------------
@@ -145,6 +146,27 @@ class SparseMatrix
 		return result
 	end
 
+ 	#This is to make the cholsky Factorization faster
+	def colSort()
+		#Idea 1: a column sorted single array, wont work
+		#@matrix.keys.sort {|a, b| (a[1] * @rowCount + a[0]) <=> (b[1] * @rowCount + b[0])}.map {|x| @matrix[x]}
+
+		#Idea 2: a list of lists, would work, but this code isnt working
+		#out = Array.new(@colCount, [])
+		#@matrix.each {|key, value| out[key[1]-1] << key}
+		#out.each {|x| x.sort {|a,b| a[0] <=> b[0]}}
+		#out.each {|x| x.map!{|y| @matrix[y]}}
+		#out
+	end
+
+	def factorize()
+		# this is the poor way where we iterate over values we know to be zero
+		# colSort() was an attempt to fix this, but there is a trade off....
+		out = clone()
+		(1..@colCount).each do |j|
+
+	end
+
 end
 
 
@@ -164,3 +186,4 @@ m = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.75)
 puts m
 puts "-------------  * -3  ---------------"
 puts m.multiply(-3)
+puts m.colSort

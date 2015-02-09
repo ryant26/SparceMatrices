@@ -108,7 +108,7 @@ class ContractFailure < StandardError
     end
 
     def set_backtrace(backtrace)
-        set_backtrace_old(backtrace[5..backtrace.length]);
+        set_backtrace_old(backtrace[4..backtrace.length]);
     end
 end
 

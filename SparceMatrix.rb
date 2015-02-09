@@ -333,6 +333,11 @@ class SparseMatrix < Contracted
                     pass
                 end
             )
+
+            valueNumerical = Contract.new(
+                "elements may only be numerical values",
+                Proc.new { |key, value| value.is_a? Numerical }
+            )
             
             dimensionsPositiveNumerical = Contract.new(
                 "dimensions must be positive and integral (single int or 2 element array)",
@@ -354,8 +359,11 @@ class SparseMatrix < Contracted
 
             addPrecondition(:setElement, elementCoordArray)
             addPrecondition(:setElement, elementCoordInt)
+            addPrecondition(:setElement, valueNumerical)
 
             addPrecondition(:setDimensions, dimensionsPositiveNumerical)
+
+            ## operations
 
             inputIsMatrix = Contract.new(
                 "input must be a sparse matrix",
@@ -409,6 +417,8 @@ class SparseMatrix < Contracted
 
         def addPostconditions
             
+            ## operations
+            
             resultSameSize = Contract.new(
                 "returned matrix must be identical size",
                 Proc.new do |returnMatrix|
@@ -450,6 +460,13 @@ class SparseMatrix < Contracted
 
             addPostcondition(:multiply, resultScalarMultiplySize)
             addPostcondition(:multiply, resultMultiplySize)
+
+            ## properties
+            
+            identityDeterminant = Contract.new(
+                "identity matrix must have determinant 1",
+                Proc.new { |result| result && determinant == 1 }
+            )
         end
 
 end

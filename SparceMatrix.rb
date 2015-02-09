@@ -463,8 +463,10 @@ class SparseMatrix < Contracted
             
             identityDeterminant = Contract.new(
                 "identity matrix must have determinant 1",
-                Proc.new { |result| result && determinant == 1 }
+                Proc.new { |result|  !(result ^ determinant == 1 )}
             )
+
+            addPostcondition(:isIdentity, identityDeterminant)
         end
 
 end

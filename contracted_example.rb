@@ -32,34 +32,34 @@ class A < Contracted
 
         @thing = str
 
-        addInvariant( "member attribute must always be a string",
+        addInvariant( Contract.new("member attribute must always be a string",
             Proc.new { @thing.is_a? String }
-        );
+        ));
 
         addPrecondition( :my_to_s,
-            "if there is a parameter, parameter must be a positive integer",
+            Contract.new("if there is a parameter, parameter must be a positive integer",
             Proc.new do |*params|
                 count = params[0]
                 (count == nil) ||
                 (count.is_a? Integer) && (count > 0)
             end
-        );
+        ));
 
         addPostcondition( :my_to_s,
-            "result length must be count times existing string length",
+            Contract.new("result length must be count times existing string length",
             Proc.new do |returnVal, *params|
                 count = params[0] || 1
                 returnVal.length == @thing.length * count
             end
-        );
+        ));
 
         addPostcondition( :my_to_s,
-            "result must be a string",
+            Contract.new("result must be a string",
             Proc.new do |returnVal, *params|
                 count = params[0] || 1
                 returnVal.is_a? String
             end
-        );
+        ));
 
     end
 

@@ -1,4 +1,4 @@
-require 'minitest'
+require './contracted'
 
 #
 # internal syntax note: matrix coordinates are in row, column order.
@@ -10,11 +10,9 @@ require 'minitest'
 # 	    | 0 7 0 |
 # 	    | 0 0 0 |
 #
-class SparseMatrix
+class SparseMatrix < Contracted
 	protected
-	attr_reader :matrix
-	attr_reader :rowCount
-	attr_reader :colCount
+	attr_reader :matrix, :rowCount, :colCount
 
 	private
 	# --------------------Factory Methods-------------------------
@@ -59,6 +57,11 @@ class SparseMatrix
 		@matrix = Hash.new(0)
 		@rowCount = rows
 		@colCount = columns
+
+                super #<-- superconstructor necessary for contracts
+                addInvariants
+                addPreconditions
+                addPostconditions
 	end
 
 
@@ -128,7 +131,7 @@ class SparseMatrix
 	end
 
 	
-	# ------------------------------Infastructure-----------------------------
+	# ----------------------------Infastructure---------------------------
 
 	def setElement(key, value)
 		if value == 0
@@ -247,11 +250,93 @@ class SparseMatrix
 	alias * multiply
 	alias + add
 	alias - subtract
+
+	# --------------------------- Invariants --------------------------
+
+        def addInvariants
+            addInvariant(Contract.new(
+                "matrix must contain fewer elements than M * N",
+                Proc.new { @matrix.length <= @rowCount * @colCount }
+            ))
+        end
+
+	# -------------------------- Preconditions -------------------------
+
+        def addPreconditions
+
+            inputIsMatrix = Contract.new(
+                "input must be a sparse matrix",
+                Proc.new do |*params|
+                    matrix = params[0]
+                    (matrix.respond_to? :colCount) &&
+                    (matrix.respond_to? :rowCount)
+                end
+            )
+
+            inputSameSize = Contract.new(
+                "input matrix must be identical size",
+                Proc.new do |*params|
+                    matrix = params[0]
+                    (matrix.colCount == @colCount) &&
+                    (matrix.rowCount == @rowCount)
+                end
+            )
+
+            numericOrMatrix = Contract.new(
+                "input must be numerical value or a matrix",
+                Proc.new do |*params|
+                    (params[0].is_a? Numeric) || 
+                    (params[0].respond_to? :getElement)
+                end
+            )
+            
+            matrixCompatibleMultiply = Contract.new(
+                "input matrix must be of compatible size",
+                Proc.new do |*params|
+                    matr = params[0]
+                    if (matr.respond_to? :rowCount) && 
+                       (matr.respond_to? :colCount)
+                        @rowCount = matr.colCount
+                        @colCount = matr.rowCount
+                    else
+                        true
+                    end
+                end
+            )
+
+            addPrecondition(:add, inputIsMatrix)
+            addPrecondition(:add, inputSameSize)
+
+            addPrecondition(:subtract, inputSameSize)
+            addPrecondition(:subtract, inputIsMatrix)
+
+            addPrecondition(:multiply, numericOrMatrix)
+            addPrecondition(:multiply, matrixCompatibleMultiply)
+
+        end
+
+	# -------------------------- Postconditions -------------------------
+
+        def addPostconditions
+            
+            resultSameSize = Contract.new(
+                "returned matrix must be identical size",
+                Proc.new do |returnMatrix|
+                    returnMatrix.colCount == @colCount &&
+                    returnMatrix.rowCount == @rowCount
+                end
+            )
+
+            addPostcondition(:add, resultSameSize);
+            addPostcondition(:subtract, resultSameSize);
+
+        end
+
 end
 
 
-myMAt = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.5)
-myMAt2 = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.25)
+myMAt = ContractRunner.new(SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.2))
+myMAt2 = ContractRunner.new(SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.25))
 puts "------------ Matrix 1---------------"
 puts myMAt
 puts "-------------Matrix 2---------------"
@@ -262,13 +347,14 @@ puts "-------------2  -   1---------------"
 puts myMAt2.subtract(myMAt)
 
 puts "-------------Matrix 3---------------"
-m = SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.75)
+m = ContractRunner.new(SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.75))
 puts m
 puts "-------------  * -3  ---------------"
 puts m.multiply(-3)
-puts SparseMatrix.Identity(10)
 puts "=====================LUP Decomposition==============="
-m = SparseMatrix.Zeros(3,3)
+puts ContractRunner.new(SparseMatrix.Identity(10))
+
+m = ContractRunner.new(SparseMatrix.Zeros(3,3))
 m.setElement([1,1], 1)
 m.setElement([1,2], 3)
 m.setElement([1,3], 5)

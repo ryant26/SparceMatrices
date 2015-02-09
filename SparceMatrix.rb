@@ -256,8 +256,7 @@ puts m
 puts "-------------  * -3  ---------------"
 puts m.multiply(-3)
 puts SparseMatrix.Identity(10)
-
-puts "----------------Testing Decomposition--------------"
+puts "=====================LUP Decomposition==============="
 m = SparseMatrix.Zeros(3,3)
 m.setElement([1,1], 1)
 m.setElement([1,2], 3)
@@ -281,7 +280,7 @@ puts "---------------------- P ---------------------------"
 puts out[2]
 puts "----------------------# Row swaps-------------------"
 puts out[3]
-puts "-----------------------Determinant ------------------"
+puts "-----------------------Determinant Test------------------"
 m = SparseMatrix.Zeros(3,3)
 m.setElement([1,1], 1)
 m.setElement([1,2], 2)

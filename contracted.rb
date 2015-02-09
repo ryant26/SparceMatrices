@@ -15,7 +15,10 @@
 # Returns true iff the test passes.
 #
 # EX: { |returnVal, *parameters|  returnVal < @max }
-#     
+#
+#
+# A Contract is made of a String message describing the contract, and a Proc
+# contract that matches one of the 3 above.
 class Contract
     attr_reader :contract, :message
 
@@ -30,6 +33,9 @@ class Contract
 end
 
 class Contracted
+
+    #TODO this was written before Contracts were an object with an associated
+    #message.  it should be refactored to match.
 
     private
 
@@ -145,6 +151,14 @@ class ContractRunner < BasicObject
         
         returnValue
     end
+
+    #TODO verify*() should be refactored to use verifyContracts() somehow. the
+    #repetition is ugly.
+    #
+    #TODO understanding runtime errors in contract blocks requires knowledge of
+    #implementation here.  should try/catch ContractFailure and general
+    #Exception in verifyContracts() above.  Add message info to general
+    #Exception
 
     def verifyInvariants()
         @contractedObject.getInvariants().each do |invariant|

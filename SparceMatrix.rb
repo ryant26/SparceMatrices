@@ -108,7 +108,20 @@ class SparseMatrix < Contracted
 	end
 
 	# ---------------------------Properties---------------------------------
+        
+        def isSquare
+            @rowCount == @colCount
+        end
 
+        def isDiagonal
+            offDiagonal = @matrix.select { |coord| coord[0] != coord[1] }
+            isSquare && offDiagonal.length == 0
+        end
+
+        def isIdentity
+            notOnes = @matrix.select { |coord, val| val != 1 }
+            isDiagonal && notOnes.length == 0
+        end
 
 	# ---------------------Ruby Overrides (or similar)----------------------
 
@@ -159,7 +172,7 @@ class SparseMatrix < Contracted
 		end
 	end
 
-	# Identical to hash.merge!, but clears zero values from map
+	# Identical to Hash.merge!, but clears zero values from map
 	def sparseMerge!(matrix)
 		matrix.matrix.each do |key, val|
 			setElement(key, (yield key, @matrix[key], val))
@@ -360,9 +373,40 @@ class SparseMatrix < Contracted
                 end
             )
 
-            addPostcondition(:add, resultSameSize);
-            addPostcondition(:subtract, resultSameSize);
+            resultScalarMultiplySize = Contract.new(
+                "matrix scalar product must be identical size",
+                Proc.new do |returnMatrix, *params|
+                    scalar = params[0]
+                    if scalar.is_a? Numeric
+                        (returnMatrix.colCount == @colCount) &&
+                        (returnMatrix.rowCount == @rowCount)
+                    else
+                        true
+                    end
+                end
+            )
 
+            resultMultiplySize = Contract.new(
+                "matrix product must have: " + 
+                "colCount == receiver colCount, rowCount == input colCount",
+                Proc.new do |returnMatrix, *params|
+                    matr = params[0]
+                    if (matr.respond_to? :rowCount) && 
+                       (matr.respond_to? :colCount)
+                        (returnMatrix.colCount == @colCount) &&
+                        (returnMatrix.rowCount == matr.colCount)
+                    else
+                        true
+                    end
+                end
+            )
+
+            addPostcondition(:add, resultSameSize)
+
+            addPostcondition(:subtract, resultSameSize)
+
+            addPostcondition(:multiply, resultScalarMultiplySize)
+            addPostcondition(:multiply, resultMultiplySize)
         end
 
 end
@@ -378,14 +422,44 @@ puts "-------------1  +   2---------------"
 puts myMAt2.add(myMAt)
 puts "-------------2  -   1---------------"
 puts myMAt2.subtract(myMAt)
+puts "-------------2  *   1---------------"
+puts myMAt2.multiply(myMAt)
+puts "-------------1  *   2---------------"
+puts myMAt2 * myMAt
 
 puts "-------------Matrix 3---------------"
 m = ContractRunner.new(SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.75))
 puts m
 puts "-------------  * -3  ---------------"
 puts m.multiply(-3)
+
+puts "=====================Square, Identity, Diagonal==============="
+
+ident = ContractRunner.new(SparseMatrix.Identity(10))
+puts ident
+puts "is square? " + ident.isSquare.to_s
+puts "is diagonal? " + ident.isDiagonal.to_s
+puts "is identity? " + ident.isIdentity.to_s
+
+ident.setElement([1,1], 3.3)
+puts ident
+puts "is square? " + ident.isSquare.to_s
+puts "is diagonal? " + ident.isDiagonal.to_s
+puts "is identity? " + ident.isIdentity.to_s
+
+ident.setElement([1,5], 9.3)
+puts ident
+puts "is square? " + ident.isSquare.to_s
+puts "is diagonal? " + ident.isDiagonal.to_s
+puts "is identity? " + ident.isIdentity.to_s
+
+ident.setDimensions([3,14])
+puts ident
+puts "is square? " + ident.isSquare.to_s
+puts "is diagonal? " + ident.isDiagonal.to_s
+puts "is identity? " + ident.isIdentity.to_s
+
 puts "=====================LUP Decomposition==============="
-puts ContractRunner.new(SparseMatrix.Identity(10))
 
 m = ContractRunner.new(SparseMatrix.Zeros(3,3))
 m.setElement([1,1], 1)

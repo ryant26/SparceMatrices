@@ -13,12 +13,10 @@ require 'minitest'
 class SparseMatrix
 	protected
 	attr_reader :matrix
+	attr_accessor :rowCount
+	attr_accessor :colCount
 
-	
-	
 	private
-	@rowCount
-	@colCount
 	# --------------------Factory Methods-------------------------
 	def self.CreateMatrixFromPercentFull(rows, cols, percent)
 		result = SparseMatrix.Zeros(rows, cols)
@@ -85,7 +83,7 @@ class SparseMatrix
 		result = SparseMatrix.Zeros(@rowCount, @colCount)
 		if matrix.respond_to? :getElement
 			(1..@rowCount).each do |i|
-				(1..@colCount).each do |k|
+				(1..matrix.colCount).each do |k|
 					sum = 0
 					(1..@colCount).each do |j|
 						if (@matrix.key?([i,j]))
@@ -167,8 +165,28 @@ class SparseMatrix
 	end
 
 	#precondit must be square
+	def determinant()
+		#LUPR is the Lower, Upper, and Permutation Matrices, R is the number of row exchanges in the decomposition
+		lupr = decompose
+		a = (-1)**lupr[3]
+		b = determinantTriangular(lupr[0])
+		c = determinantTriangular(lupr[1])
+		a*b*c
+	end
+
+	#precondit matrix must be triangular
+	def determinantTriangular(matrix)
+		#DET of any triangular matrix is the product of it's diagonal elements
+		product = 1
+		(1..matrix.colCount).each { |i| product *= matrix.getElement([i,i])}
+		product
+	end
+
+	#precondit must be square
 	def decompose()
 		pivot =  getPivot
+		rowEchanges = pivot[1]
+		pivot = pivot[0]
 		temp = pivot * self
 		u = SparseMatrix.Zeros(@rowCount, @colCount)
 		l = SparseMatrix.Identity(@colCount)
@@ -183,12 +201,13 @@ class SparseMatrix
 				end
 			end
 		end
-		[l,u,pivot]
+		[l,u,pivot, rowEchanges]
 	end
 
 	#precondit must be square
 	def getPivot() 
 		id = SparseMatrix.Identity(@rowCount)
+		rowEchanges = 0;
 		(1..@colCount).each do |j|
 			max = getElement([j, j])
 			row = j
@@ -199,8 +218,9 @@ class SparseMatrix
 				end
 			end
 			id.swapRow([j,j], [row, row])
+			rowEchanges += 1 if j != row
 		end
-		id
+		[id, rowEchanges]
 	end
 
 	def swapRow(key1, key2)
@@ -259,4 +279,18 @@ puts "---------------------- U ---------------------------"
 puts out[1]
 puts "---------------------- P ---------------------------"
 puts out[2]
-
+puts "----------------------# Row swaps-------------------"
+puts out[3]
+puts "-----------------------Determinant ------------------"
+m = SparseMatrix.Zeros(3,3)
+m.setElement([1,1], 1)
+m.setElement([1,2], 2)
+m.setElement([1,3], 3)
+m.setElement([2,1], 3)
+m.setElement([2,2], 2)
+m.setElement([2,3], 1)
+m.setElement([3,1], 2)
+m.setElement([3,2], 1)
+m.setElement([3,3], 3)
+puts m
+puts "Determinant is #{m.determinant} == -12?"

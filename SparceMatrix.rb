@@ -172,11 +172,43 @@ class SparseMatrix < Contracted
 		return result
 	end
 
+	#matrix is non-singular (invertable)
+	def inverse()
+		(1/determinant) * clone.adjoint
+	end
+
+	#precondit must be square
+	def adjoint()
+		cofactorMatrix.transpose
+	end
+
+	def transpose()
+		@matrix.each {|key, val| key[0], key[1] = key[1], key[0]}.rehash
+	end
+
+	#precondit must be squaare
+	def cofactorMatrix()
+		minorMatrix.matrix.each {|key ,val| minorMatrix.setElement(key, ((-1)**(key[0] + key[1])) * val)}
+	end
+
+	#precondit must be square
+	def minorMatrix()
+		out = SparseMatrix.Zeros
+		(1..@rowCount).each { |i| (1..@colCount).each { |j| out.setElement([i, j], minor(i,j).determinant) } }
+		out
+	end
+
 	#precondit must be square
 	def minor(rd, cd)
 		#returns the sub matrix for a row and column deletion
-		m = @matrix.reject {|key, val| key[0] == rd || key[1] == cd}
+		m = @matrix.reject {|key, val| key[0] == rd || key[1] == cd}.map do |key ,val|
+			key[0] -= 1 if key[0] > rd
+			key[1] -= 1 if key[1] > cd
+			[key, val]
+		end
+		SparseMatrix.FromHash(Hash[m])
 	end
+
 
 	#precondit must be square
 	def determinant()
@@ -191,6 +223,7 @@ class SparseMatrix < Contracted
 	#precondit matrix must be triangular
 	def determinantTriangular(matrix)
 		#DET of any triangular matrix is the product of it's diagonal elements
+		#Refactoring opertunity, use inject
 		product = 1
 		(1..matrix.colCount).each { |i| product *= matrix.getElement([i,i])}
 		product

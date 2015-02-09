@@ -90,10 +90,10 @@ class SparseMatrix < Contracted
 		#DOK was a bad data choice for ordered iteration, we could considder a to_a function thtat uses another format possibly
 		result = SparseMatrix.Zeros(@rowCount, @colCount)
 		if matrix.respond_to? :getElement
-			(1...@rowCount).each do |i|
-				(1...matrix.colCount).each do |k|
+			(1..@rowCount).each do |i|
+				(1..matrix.colCount).each do |k|
 					sum = 0
-					(1...@colCount).each do |j|
+					(1..@colCount).each do |j|
 						if (@matrix.key?([i,j]))
 							sum += getElement([i,j]) * matrix.getElement([j, k])
 						end
@@ -170,8 +170,6 @@ class SparseMatrix < Contracted
 		else
 			@rowCount, @colCount = dim, dim
 		end
-
-                @matrix.delete_if { |key| key[0] < @rowCount || key[1] < @colCount }
 	end
 
 	# Identical to Hash.merge!, but clears zero values from map
@@ -325,8 +323,8 @@ class SparseMatrix < Contracted
                 "element coordinates must be integers within matrix bounds",
                 Proc.new do |key|
                     pass = true
-                    pass &= key[0].is_a?(Integer) && key[0] >= 0 && key[0] < @rowCount
-                    pass &= key[1].is_a?(Integer) && key[1] >= 0 && key[1] < @colCount
+                    pass &= key[0].is_a?(Integer) && key[0] > 0 && key[0] <=  @rowCount
+                    pass &= key[1].is_a?(Integer) && key[1] > 0 && key[1] <= @colCount
 
                     puts key if !pass
 
@@ -336,7 +334,7 @@ class SparseMatrix < Contracted
 
             valueNumerical = Contract.new(
                 "elements may only be numerical values",
-                Proc.new { |key, value| value.is_a? Numerical }
+                Proc.new { |key, value| value.is_a? Numeric }
             )
             
             dimensionsPositiveNumerical = Contract.new(
@@ -522,15 +520,15 @@ puts "is identity? " + ident.isIdentity.to_s
 puts "=====================LUP Decomposition==============="
 
 m = ContractRunner.new(SparseMatrix.Zeros(3,3))
-m.setElement([0,0], 1)
-m.setElement([0,1], 3)
-m.setElement([0,2], 5)
-m.setElement([1,0], 2)
-m.setElement([1,1], 4)
-m.setElement([1,2], 7)
-m.setElement([2,0], 1)
-m.setElement([2,1], 1)
-m.setElement([2,2], 0)
+m.setElement([1,1], 1)
+m.setElement([1,2], 3)
+m.setElement([1,3], 5)
+m.setElement([2,1], 2)
+m.setElement([2,2], 4)
+m.setElement([2,3], 7)
+m.setElement([3,1], 1)
+m.setElement([3,2], 1)
+m.setElement([3,3], 0)
 puts "---------------------- orig------------------------"
 puts m
 a = 2

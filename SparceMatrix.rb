@@ -13,8 +13,8 @@ require 'minitest'
 class SparseMatrix
 	protected
 	attr_reader :matrix
-	attr_accessor :rowCount
-	attr_accessor :colCount
+	attr_reader :rowCount
+	attr_reader :colCount
 
 	private
 	# --------------------Factory Methods-------------------------
@@ -37,6 +37,11 @@ class SparseMatrix
 		out = SparseMatrix.new(size, size)
 		(1..size).each { |x| out.setElement([x, x], 1)}
 		out
+	end
+
+	def self.FromHash(input, rows, columns)
+		m = SparseMatrix.Zeros(rows, columns)
+		m.matrix = input
 	end
 
 	def self.Build(height, width)
@@ -162,6 +167,12 @@ class SparseMatrix
 		result = SparseMatrix.Zeros(@rowCount, @colCount)
 		@matrix.each { |key, val| result.setElement(key, val)}
 		return result
+	end
+
+	#precondit must be square
+	def minor(rd, cd)
+		#returns the sub matrix for a row and column deletion
+		m = @matrix.reject {|key, val| key[0] == rd || key[1] == cd}
 	end
 
 	#precondit must be square

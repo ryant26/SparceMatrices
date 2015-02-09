@@ -16,6 +16,19 @@
 #
 # EX: { |returnVal, *parameters|  returnVal < @max }
 #     
+class Contract
+    attr_reader :contract, :message
+
+    private
+    @contract
+    @message
+
+    def initialize(message, contract)
+        @message = message
+        @contract = contract
+    end
+end
+
 class Contracted
 
     private
@@ -34,23 +47,23 @@ class Contracted
 
     # Register an invariant for automatic verification
     # after every call.
-    def addInvariant(label, invariant)
-        getInvariants.push(invariant)
-        @contractLabels[invariant] = label
+    def addInvariant(invariant)
+        getInvariants.push(invariant.contract)
+        @contractLabels[invariant.contract] = invariant.message
     end
 
     # Register a precondition for automatic verification
     # before every call.
-    def addPrecondition(method, label, precondition)
-        getPreconditions(method).push(precondition)
-        @contractLabels[precondition] = label
+    def addPrecondition(method, precondition)
+        getPreconditions(method).push(precondition.contract)
+        @contractLabels[precondition.contract] = precondition.message
     end
 
     # Register a postcondition for automatic verification
     # after every call.
-    def addPostcondition(method, label, postcondition)
-        getPostconditions(method).push(postcondition)
-        @contractLabels[postcondition] = label
+    def addPostcondition(method, postcondition)
+        getPostconditions(method).push(postcondition.contract)
+        @contractLabels[postcondition.contract] = postcondition.message
     end
 
     public
@@ -85,7 +98,7 @@ class ContractFailure < StandardError
     alias_method :set_backtrace_old, :set_backtrace
 
     def initialize(msg)
-        super "\n\n" + msg
+        super "\n\n" + msg + "\n\n"
     end
 
     def set_backtrace(backtrace)
@@ -146,7 +159,7 @@ class ContractRunner < BasicObject
         # TODO preconditions on passed block...?
         @contractedObject.getPreconditions(method).each do |precondition|
             if !precondition.call(*args)
-                failContract method.to_s + " Precondition Failure: " + 
+                failContract method.to_s + ": Precondition Failure: " + 
                     @contractedObject.getContractLabel(precondition)
             end
         end
@@ -156,7 +169,7 @@ class ContractRunner < BasicObject
         # TODO on passed block...? is that a thing?
         @contractedObject.getPostconditions(method).each do |postcondition|
             if !postcondition.call(returnValue, *args)
-                failContract method.to_s + " Postcondition Failure: " + 
+                failContract method.to_s + ": Postcondition Failure: " + 
                     @contractedObject.getContractLabel(postcondition)
             end
         end

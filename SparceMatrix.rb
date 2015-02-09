@@ -90,10 +90,10 @@ class SparseMatrix < Contracted
 		#DOK was a bad data choice for ordered iteration, we could considder a to_a function thtat uses another format possibly
 		result = SparseMatrix.Zeros(@rowCount, @colCount)
 		if matrix.respond_to? :getElement
-			(1..@rowCount).each do |i|
-				(1..matrix.colCount).each do |k|
+			(1...@rowCount).each do |i|
+				(1...matrix.colCount).each do |k|
 					sum = 0
-					(1..@colCount).each do |j|
+					(1...@colCount).each do |j|
 						if (@matrix.key?([i,j]))
 							sum += getElement([i,j]) * matrix.getElement([j, k])
 						end
@@ -170,6 +170,8 @@ class SparseMatrix < Contracted
 		else
 			@rowCount, @colCount = dim, dim
 		end
+
+                @matrix.delete_if { |key| key[0] < @rowCount || key[1] < @colCount }
 	end
 
 	# Identical to Hash.merge!, but clears zero values from map
@@ -310,10 +312,54 @@ class SparseMatrix < Contracted
 
         def addPreconditions
 
+            ## getters and setters
+
+            elementCoordArray = Contract.new(
+                "element coordinates must be 2 element array",
+                Proc.new do |key|
+                    key.is_a?(Array) && key.length == 2
+                end
+            )
+
+            elementCoordInt = Contract.new(
+                "element coordinates must be integers within matrix bounds",
+                Proc.new do |key|
+                    pass = true
+                    pass &= key[0].is_a?(Integer) && key[0] >= 0 && key[0] < @rowCount
+                    pass &= key[1].is_a?(Integer) && key[1] >= 0 && key[1] < @colCount
+
+                    puts key if !pass
+
+                    pass
+                end
+            )
+            
+            dimensionsPositiveNumerical = Contract.new(
+                "dimensions must be positive and integral (single int or 2 element array)",
+                Proc.new do |dim|
+                    pass = true
+                    if dim.is_a? Array
+                        pass &= dim.length == 2
+                        pass &= dim[0].is_a?(Integer) && dim[0] > 0
+                        pass &= dim[1].is_a?(Integer)  && dim[1] > 0
+                    else
+                        pass &= dim.is_a?(Integer)  && dim > 0
+                    end
+                    pass
+                end
+            )
+
+            addPrecondition(:getElement, elementCoordArray)
+            addPrecondition(:getElement, elementCoordInt)
+
+            addPrecondition(:setElement, elementCoordArray)
+            addPrecondition(:setElement, elementCoordInt)
+
+            addPrecondition(:setDimensions, dimensionsPositiveNumerical)
+
             inputIsMatrix = Contract.new(
                 "input must be a sparse matrix",
-                Proc.new do |*params|
-                    matrix = params[0]
+                Proc.new do |matrix|
                     (matrix.respond_to? :colCount) &&
                     (matrix.respond_to? :rowCount)
                 end
@@ -321,8 +367,7 @@ class SparseMatrix < Contracted
 
             inputSameSize = Contract.new(
                 "input matrix must be identical size",
-                Proc.new do |*params|
-                    matrix = params[0]
+                Proc.new do |matrix|
                     (matrix.colCount == @colCount) &&
                     (matrix.rowCount == @rowCount)
                 end
@@ -330,22 +375,21 @@ class SparseMatrix < Contracted
 
             numericOrMatrix = Contract.new(
                 "input must be numerical value or a matrix",
-                Proc.new do |*params|
-                    (params[0].is_a? Numeric) || 
-                    (params[0].respond_to? :getElement)
+                Proc.new do |param|
+                    (param.is_a? Numeric) || 
+                    (param.respond_to? :getElement)
                 end
             )
             
             matrixCompatibleMultiply = Contract.new(
                 "input matrix must be of compatible size",
-                Proc.new do |*params|
-                    matr = params[0]
+                Proc.new do |matr|
                     if (matr.respond_to? :rowCount) && 
                        (matr.respond_to? :colCount)
                         @rowCount = matr.colCount
                         @colCount = matr.rowCount
                     else
-                        true
+                        true # contract does not apply for non matrix input
                     end
                 end
             )
@@ -389,8 +433,7 @@ class SparseMatrix < Contracted
             resultMultiplySize = Contract.new(
                 "matrix product must have: " + 
                 "colCount == receiver colCount, rowCount == input colCount",
-                Proc.new do |returnMatrix, *params|
-                    matr = params[0]
+                Proc.new do |returnMatrix, matr|
                     if (matr.respond_to? :rowCount) && 
                        (matr.respond_to? :colCount)
                         (returnMatrix.colCount == @colCount) &&
@@ -462,15 +505,15 @@ puts "is identity? " + ident.isIdentity.to_s
 puts "=====================LUP Decomposition==============="
 
 m = ContractRunner.new(SparseMatrix.Zeros(3,3))
-m.setElement([1,1], 1)
-m.setElement([1,2], 3)
-m.setElement([1,3], 5)
-m.setElement([2,1], 2)
-m.setElement([2,2], 4)
-m.setElement([2,3], 7)
-m.setElement([3,1], 1)
-m.setElement([3,2], 1)
-m.setElement([3,3], 0)
+m.setElement([0,0], 1)
+m.setElement([0,1], 3)
+m.setElement([0,2], 5)
+m.setElement([1,0], 2)
+m.setElement([1,1], 4)
+m.setElement([1,2], 7)
+m.setElement([2,0], 1)
+m.setElement([2,1], 1)
+m.setElement([2,2], 0)
 puts "---------------------- orig------------------------"
 puts m
 a = 2

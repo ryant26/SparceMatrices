@@ -88,10 +88,10 @@ class SparseMatrix < Contracted
 
 	# pre matrix should be correct dimensions
 	# post matrix should be correct dimensions
-	def multiply(matrix)
+	def multiply(matrix, mutate=false)
 		#DOK was a bad data choice for ordered iteration, we could considder a to_a function thtat uses another format possibly
 		if matrix.respond_to? :getElement
-			result = SparseMatrix.Zeros(@rowCount, @colCount)
+			mutate ? result = self : result = SparseMatrix.Zeros(@rowCount, @colCount)
 			(1..@rowCount).each do |i|
 				(1..matrix.colCount).each do |k|
 					sum = 0
@@ -104,10 +104,34 @@ class SparseMatrix < Contracted
 				end
 			end
 		elsif matrix.is_a? Numeric
-			result = clone
+			mutate ? result = self : result = clone
 			result.matrix.each { |key, value| result.setElement(key, matrix * value)}
 		end
 		return result
+	end
+
+	def multiply!(input)
+		multiply(input, true)
+	end
+	# ----------------------------Transformations---------------------------
+
+	def inverse()
+		cofactorMatrix * (1/determinant)
+	end
+
+	def inverse!()
+		setData(inverse.matrix)
+	end
+
+	def transpose()
+		m = clone
+		m.matrix.each {|key, val| key[0], key[1] = key[1], key[0]}.rehash
+		m
+	end
+
+	def transpose!()
+		@matrix.each {|key, val| key[0], key[1] = key[1], key[0]}.rehash
+		self
 	end
 
 	# ---------------------------Properties---------------------------------
@@ -124,6 +148,20 @@ class SparseMatrix < Contracted
         def isIdentity
             notOnes = @matrix.select { |coord, val| val != 1 }
             isDiagonal && notOnes.length == 0
+        end
+
+        def resize(rows, colums)
+        	changeMatrixSize(clone, rows, columns)
+        end
+
+        def resize!(rows, columns)
+        	changeMatrixSize(self, rows, columns)
+        end
+
+        def changeMatrixSize (matrix, rows, colums)
+        	matrix.setDimensions([rows,columns])
+        	matrix.matrix.reject! {|key ,val| key[0] > rows || key[1] > columns}
+        	matrix
         end
 
 	# ---------------------Ruby Overrides (or similar)----------------------
@@ -191,20 +229,10 @@ class SparseMatrix < Contracted
 		return result
 	end
 
-	#matrix is non-singular (invertable)
-	def inverse()
-		adjoint * (1/determinant)
-	end
-
 	#precondit must be square
 	def adjoint()
 		m = cofactorMatrix
-		m.transpose
-		m
-	end
-
-	def transpose()
-		@matrix.each {|key, val| key[0], key[1] = key[1], key[0]}.rehash
+		m.transpose!
 	end
 
 	#precondit must be squaare
@@ -287,13 +315,13 @@ class SparseMatrix < Contracted
 					row = i
 				end
 			end
-			id.swapRow([j,j], [row, row])
+			id.swapRow!([j,j], [row, row])
 			rowEchanges += 1 if j != row
 		end
 		[id, rowEchanges]
 	end
 
-	def swapRow(key1, key2)
+	def swapRow!(key1, key2)
 		val1 = getElement(key1)
 		val2 = getElement(key2)
 		@matrix.delete(key1)

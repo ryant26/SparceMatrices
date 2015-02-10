@@ -179,7 +179,7 @@ class SparseMatrix < Contracted
         	return false unless isSquare
         	d = determinant
         	return false unless d != 0
-        	return false if d = Float::NAN  
+        	return false if d.nan?  
         	return true
         end
 
@@ -488,7 +488,7 @@ class SparseMatrix < Contracted
                 "input matrix must have nonzero determinant, and it must exist",
                 Proc.new do 
                 	d = determinant
-                	(d != 0) && (d != Float::NAN)
+                	(d != 0) && (!d.nan?)
                 end
             )
 
@@ -559,7 +559,11 @@ class SparseMatrix < Contracted
             equalTransposeDeterminant = Contract.new(
                 "result determinant must be identical to transpose determinant",
                 Proc.new do |result|
-                    10E-10 >= result - transpose.determinant
+                	if (!result.nan?)
+                    	10E-10 >= result - transpose.determinant
+                	else
+                		true
+                	end
                 end
             )
 
@@ -605,7 +609,7 @@ class SparseMatrix < Contracted
 
             addPostcondition(:inverse, resultSameSize)
 
-            #addPostcondition(:determinant, equalTransposeDeterminant)
+            addPostcondition(:determinant, equalTransposeDeterminant)
 
             addPostcondition(:transpose, transposeSizeSwap)
             addPostcondition(:transpose, resultSameDeterminant)

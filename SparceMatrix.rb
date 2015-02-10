@@ -632,7 +632,7 @@ class SparseMatrix < Contracted
             invertibleDeterminant = Contract.new(
                 "invertible matrix must have inverse determinant inverse",
                 Proc.new do |result|
-                    if result
+                    if result && !result.nan?
                         1E-10 >= inverse.determinant - 1.0 / determinant
                     else
                         true # contract does not apply if noninvertible

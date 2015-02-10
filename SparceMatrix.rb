@@ -189,10 +189,6 @@ class SparseMatrix < Contracted
         	@matrix.size == 0
         end
 
-        #If we are still implementing the tridiagonal class
-        def isTridiagonal()
-        end
-
 	# ---------------------Ruby Overrides (or similar)----------------------
 
 	# does not scale to large sparse matrices - all values printed

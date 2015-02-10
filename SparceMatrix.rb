@@ -14,7 +14,7 @@ class SparseMatrix < Contracted
 	protected
 	attr_reader :matrix, :rowCount, :colCount
 
-	private
+	public
 	# --------------------Factory Methods-------------------------
 	def self.CreateMatrixFromPercentFull(rows, cols, percent)
 		result = SparseMatrix.Zeros(rows, cols)
@@ -54,7 +54,7 @@ class SparseMatrix < Contracted
 		result
 	end
 	
-	public
+	
 	def initialize(rows, columns)
 		@matrix = Hash.new(0)
 		@rowCount = rows
@@ -134,6 +134,14 @@ class SparseMatrix < Contracted
 		self
 	end
 
+	def resize(rows, colums)
+    	changeMatrixSize(clone, rows, columns)
+    end
+
+ 	def resize!(rows, columns)
+    	changeMatrixSize(self, rows, columns)
+	end
+
 	# ---------------------------Properties---------------------------------
         
         def isSquare
@@ -148,20 +156,6 @@ class SparseMatrix < Contracted
         def isIdentity
             notOnes = @matrix.select { |coord, val| val != 1 }
             isDiagonal && notOnes.length == 0
-        end
-
-        def resize(rows, colums)
-        	changeMatrixSize(clone, rows, columns)
-        end
-
-        def resize!(rows, columns)
-        	changeMatrixSize(self, rows, columns)
-        end
-
-        def changeMatrixSize (matrix, rows, colums)
-        	matrix.setDimensions([rows,columns])
-        	matrix.matrix.reject! {|key ,val| key[0] > rows || key[1] > columns}
-        	matrix
         end
 
 	# ---------------------Ruby Overrides (or similar)----------------------
@@ -203,26 +197,6 @@ class SparseMatrix < Contracted
 		@matrix = value
 	end
 
-	# precond
-	# 	dim must be an integer > 1 or a 2-member array of integer > 1
-	# postcond
-	# 	will set the instance members rowCount and colCount
-	def setDimensions(dim)
-		# inspect dimension
-		if dim.is_a? Array
-			@rowCount, @colCount = dim[0], dim[1]
-		else
-			@rowCount, @colCount = dim, dim
-		end
-	end
-
-	# Identical to Hash.merge!, but clears zero values from map
-	def sparseMerge!(matrix)
-		matrix.matrix.each do |key, val|
-			setElement(key, (yield key, @matrix[key], val))
-		end
-	end
-
 	def clone()
 		result = SparseMatrix.Zeros(@rowCount, @colCount)
 		@matrix.each { |key, val| result.setElement(key.dup, val)}
@@ -250,6 +224,43 @@ class SparseMatrix < Contracted
 	end
 
 	#precondit must be square
+	def determinant()
+		#LUPR is the Lower, Upper, and Permutation Matrices, R is the number of row exchanges in the decomposition
+		lupr = decompose
+		a = (-1)**lupr[3]
+		b = determinantTriangular(lupr[0])
+		c = determinantTriangular(lupr[1])
+		a*b*c
+	end
+
+	protected
+	# precond
+	# 	dim must be an integer > 1 or a 2-member array of integer > 1
+	# postcond
+	# 	will set the instance members rowCount and colCount
+	def setDimensions(dim)
+		# inspect dimension
+		if dim.is_a? Array
+			@rowCount, @colCount = dim[0], dim[1]
+		else
+			@rowCount, @colCount = dim, dim
+		end
+	end
+
+	def changeMatrixSize (matrix, rows, colums)
+		matrix.setDimensions([rows,columns])
+		matrix.matrix.reject! {|key ,val| key[0] > rows || key[1] > columns}
+		matrix
+	end
+
+	# Identical to Hash.merge!, but clears zero values from map
+	def sparseMerge!(matrix)
+		matrix.matrix.each do |key, val|
+			setElement(key, (yield key, @matrix[key], val))
+		end
+	end
+
+	#precondit must be square
 	def minor(rd, cd)
 		#returns the sub matrix for a row and column deletion
 		m = clone.matrix.reject {|key, val| key[0] == rd || key[1] == cd}.map do |key ,val|
@@ -258,17 +269,6 @@ class SparseMatrix < Contracted
 			[key, val]
 		end
 		SparseMatrix.FromHash(Hash[m], @rowCount-1, @colCount-1)
-	end
-
-
-	#precondit must be square
-	def determinant()
-		#LUPR is the Lower, Upper, and Permutation Matrices, R is the number of row exchanges in the decomposition
-		lupr = decompose
-		a = (-1)**lupr[3]
-		b = determinantTriangular(lupr[0])
-		c = determinantTriangular(lupr[1])
-		a*b*c
 	end
 
 	#precondit matrix must be triangular

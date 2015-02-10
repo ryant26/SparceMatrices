@@ -29,7 +29,7 @@ class SparseMatrix < Contracted
 
 	public
 	# --------------------Factory Methods-------------------------
-	def self.CreateMatrixFromPercentFull(rows, cols, percent)
+	def self.FromPercentFull(rows, cols, percent)
 		SparseMatrixFactory do
 			result = SparseMatrix.Zeros(rows, cols)
 			nonZero = (rows * cols * percent).floor
@@ -177,7 +177,9 @@ class SparseMatrix < Contracted
         	# perform the inversion..
         	return false if isZero
         	return false unless isSquare
-        	return false unless determinant !=0
+        	d = determinant
+        	return false unless d != 0
+        	return false if d = Float::NAN  
         	return true
         end
 
@@ -469,8 +471,8 @@ class SparseMatrix < Contracted
                 Proc.new do |matr|
                     if (matr.respond_to? :rowCount) && 
                        (matr.respond_to? :colCount)
-                        @rowCount = matr.colCount
-                        @colCount = matr.rowCount
+                        @rowCount == matr.colCount &&
+                        @colCount == matr.rowCount
                     else
                         true # contract does not apply for non matrix input
                     end
@@ -483,18 +485,27 @@ class SparseMatrix < Contracted
             )
 
             nonzeroDeterminant = Contract.new(
-                "input matrix must have nonzero determinant",
-                Proc.new { determinant != 0 }
+                "input matrix must have nonzero determinant, and it must exist",
+                Proc.new do 
+                	d = determinant
+                	(d != 0) && (d != Float::NAN)
+                end
             )
 
             addPrecondition(:add, inputIsMatrix)
             addPrecondition(:add, inputSameSize)
+            addPrecondition(:+, inputIsMatrix)
+            addPrecondition(:+, inputSameSize)
 
             addPrecondition(:subtract, inputSameSize)
             addPrecondition(:subtract, inputIsMatrix)
+            addPrecondition(:-, inputSameSize)
+            addPrecondition(:-, inputIsMatrix)
 
             addPrecondition(:multiply, numericOrMatrix)
             addPrecondition(:multiply, matrixCompatibleMultiply)
+			addPrecondition(:*, numericOrMatrix)
+            addPrecondition(:*, matrixCompatibleMultiply)
 
             addPrecondition(:determinant, matrixSquare)
 
@@ -589,10 +600,12 @@ class SparseMatrix < Contracted
 
             addPostcondition(:multiply, resultScalarMultiplySize)
             addPostcondition(:multiply, resultMultiplySize)
+            addPostcondition(:*, resultScalarMultiplySize)
+            addPostcondition(:*, resultMultiplySize)
 
             addPostcondition(:inverse, resultSameSize)
 
-            addPostcondition(:determinant, equalTransposeDeterminant)
+            #addPostcondition(:determinant, equalTransposeDeterminant)
 
             addPostcondition(:transpose, transposeSizeSwap)
             addPostcondition(:transpose, resultSameDeterminant)
@@ -631,114 +644,114 @@ class SparseMatrix < Contracted
 
 end
 
+# This is not a ruby convention, but it's equivilant to the python version
+if __FILE__ == $0
+	myMAt = SparseMatrix.FromPercentFull(5, 5, 0.2)
+	myMAt2 = SparseMatrix.FromPercentFull(5, 5, 0.25)
+	puts "------------ Matrix 1---------------"
+	puts myMAt
+	puts "-------------Matrix 2---------------"
+	puts myMAt2
+	puts "-------------1  +   2---------------"
+	puts myMAt2.add(myMAt)
+	puts "-------------2  -   1---------------"
+	puts myMAt2.subtract(myMAt)
+	puts "-------------2  *   1---------------"
+	puts myMAt2.multiply(myMAt)
+	puts "-------------1  *   2---------------"
+	puts myMAt2 * myMAt
 
-myMAt = ContractRunner.new(SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.2))
-myMAt2 = ContractRunner.new(SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.25))
-puts "------------ Matrix 1---------------"
-puts myMAt
-puts "-------------Matrix 2---------------"
-puts myMAt2
-puts "-------------1  +   2---------------"
-puts myMAt2.add(myMAt)
-puts "-------------2  -   1---------------"
-puts myMAt2.subtract(myMAt)
-puts "-------------2  *   1---------------"
-puts myMAt2.multiply(myMAt)
-puts "-------------1  *   2---------------"
-puts myMAt2 * myMAt
+	puts "-------------Matrix 3---------------"
+	m = SparseMatrix.FromPercentFull(5, 5, 0.75)
+	puts m
+	puts "-------------  * -3  ---------------"
+	puts m.multiply(-3)
 
-puts "-------------Matrix 3---------------"
-m = ContractRunner.new(SparseMatrix.CreateMatrixFromPercentFull(5, 5, 0.75))
-puts m
-puts "-------------  * -3  ---------------"
-puts m.multiply(-3)
+	puts "=====================Square, Identity, Diagonal==============="
 
-puts "=====================Square, Identity, Diagonal==============="
+	ident = ContractRunner.new(SparseMatrix.Identity(10))
+	puts ident
+	puts "is square? " + ident.isSquare.to_s
+	puts "is diagonal? " + ident.isDiagonal.to_s
+	puts "is identity? " + ident.isIdentity.to_s
 
-ident = ContractRunner.new(SparseMatrix.Identity(10))
-puts ident
-puts "is square? " + ident.isSquare.to_s
-puts "is diagonal? " + ident.isDiagonal.to_s
-puts "is identity? " + ident.isIdentity.to_s
+	ident.setElement([1,1], 3.3)
+	puts ident
+	puts "is square? " + ident.isSquare.to_s
+	puts "is diagonal? " + ident.isDiagonal.to_s
+	puts "is identity? " + ident.isIdentity.to_s
 
-ident.setElement([1,1], 3.3)
-puts ident
-puts "is square? " + ident.isSquare.to_s
-puts "is diagonal? " + ident.isDiagonal.to_s
-puts "is identity? " + ident.isIdentity.to_s
+	ident.setElement([1,5], 9.3)
+	puts ident
+	puts "is square? " + ident.isSquare.to_s
+	puts "is diagonal? " + ident.isDiagonal.to_s
+	puts "is identity? " + ident.isIdentity.to_s
 
-ident.setElement([1,5], 9.3)
-puts ident
-puts "is square? " + ident.isSquare.to_s
-puts "is diagonal? " + ident.isDiagonal.to_s
-puts "is identity? " + ident.isIdentity.to_s
+	ident.setDimensions([3,14])
+	puts ident
+	puts "is square? " + ident.isSquare.to_s
+	puts "is diagonal? " + ident.isDiagonal.to_s
+	puts "is identity? " + ident.isIdentity.to_s
 
-ident.setDimensions([3,14])
-puts ident
-puts "is square? " + ident.isSquare.to_s
-puts "is diagonal? " + ident.isDiagonal.to_s
-puts "is identity? " + ident.isIdentity.to_s
+	puts "=====================LUP Decomposition==============="
 
-puts "=====================LUP Decomposition==============="
-
-m = ContractRunner.new(SparseMatrix.Zeros(3,3))
-m.setElement([1,1], 1)
-m.setElement([1,2], 3)
-m.setElement([1,3], 5)
-m.setElement([2,1], 2)
-m.setElement([2,2], 4)
-m.setElement([2,3], 7)
-m.setElement([3,1], 1)
-m.setElement([3,2], 1)
-m.setElement([3,3], 0)
-puts "---------------------- orig------------------------"
-puts m
-a = 2
-puts "---------------------- pivot------------------------"
-out = m.decompose
-puts "---------------------- L ---------------------------"
-puts out[0]
-puts "---------------------- U ---------------------------"
-puts out[1]
-puts "---------------------- P ---------------------------"
-puts out[2]
-puts "----------------------# Row swaps-------------------"
-puts out[3]
-puts "-----------------------Determinant Test------------------"
-m = SparseMatrix.Zeros(3,3)
-m.setElement([1,1], 1)
-m.setElement([1,2], 2)
-m.setElement([1,3], 3)
-m.setElement([2,1], 3)
-m.setElement([2,2], 2)
-m.setElement([2,3], 1)
-m.setElement([3,1], 2)
-m.setElement([3,2], 1)
-m.setElement([3,3], 3)
-puts m
-puts "Determinant is #{m.determinant} == -12?"
-
-puts "=====================Inversion and Related================"
-m = SparseMatrix.Zeros(3,3)
-m.setElement([1,1], 10)
-m.setElement([1,2], -9)
-m.setElement([1,3], -12)
-m.setElement([2,1], 7)
-m.setElement([2,2], -12)
-m.setElement([2,3], 11)
-m.setElement([3,1], -10)
-m.setElement([3,2], 10)
-m.setElement([3,3], 3)
-puts "---------------------- orig------------------------"
-puts m
-puts "is invertable? #{m.isInvertable}"
-puts "is singular? #{m.isSingular}"
-puts "---------------------minor-------------------------------"
-puts m.minorMatrix
-puts "---------------------adjoint-----------------------------"
-a = m.clone
-puts a.adjoint
-puts "---------------------determinant-------------------------"
-puts a.determinant
-puts "---------------------inverse-----------------------------"
-puts a.inverse
+	m = ContractRunner.new(SparseMatrix.Zeros(3,3))
+	m.setElement([1,1], 1)
+	m.setElement([1,2], 3)
+	m.setElement([1,3], 5)
+	m.setElement([2,1], 2)
+	m.setElement([2,2], 4)
+	m.setElement([2,3], 7)
+	m.setElement([3,1], 1)
+	m.setElement([3,2], 1)
+	m.setElement([3,3], 0)
+	puts "---------------------- orig------------------------"
+	puts m
+	a = 2
+	out = m.decompose
+	puts "---------------------- L ---------------------------"
+	puts out[0]
+	puts "---------------------- U ---------------------------"
+	puts out[1]
+	puts "---------------------- P ---------------------------"
+	puts out[2]
+	puts "----------------------# Row swaps-------------------"
+	puts out[3]
+	puts "-----------------------Determinant Test------------------"
+	m = SparseMatrix.Zeros(3,3)
+	m.setElement([1,1], 1)
+	m.setElement([1,2], 2)
+	m.setElement([1,3], 3)
+	m.setElement([2,1], 3)
+	m.setElement([2,2], 2)
+	m.setElement([2,3], 1)
+	m.setElement([3,1], 2)
+	m.setElement([3,2], 1)
+	m.setElement([3,3], 3)
+	puts m
+	puts "Determinant is: #{m.determinant} == -12?"
+	puts "=====================Inversion and Related================"
+	m = SparseMatrix.Zeros(3,3)
+	m.setElement([1,1], 10)
+	m.setElement([1,2], -9)
+	m.setElement([1,3], -12)
+	m.setElement([2,1], 7)
+	m.setElement([2,2], -12)
+	m.setElement([2,3], 11)
+	m.setElement([3,1], -10)
+	m.setElement([3,2], 10)
+	m.setElement([3,3], 3)
+	puts "---------------------- orig------------------------"
+	puts m
+	puts "is invertable? #{m.isInvertable}"
+	puts "is singular? #{m.isSingular}"
+	puts "---------------------minor-------------------------------"
+	puts m.minorMatrix
+	puts "---------------------adjoint-----------------------------"
+	a = m.clone
+	puts a.adjoint
+	puts "---------------------determinant-------------------------"
+	puts a.determinant
+	puts "---------------------inverse-----------------------------"
+	puts a.inverse
+end

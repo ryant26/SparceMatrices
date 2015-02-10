@@ -14,60 +14,67 @@ class SparseMatrix < Contracted
 	protected
 	attr_reader :matrix, :rowCount, :colCount
 
-	public
-	# --------------------Factory Methods-------------------------
-	def self.CreateMatrixFromPercentFull(rows, cols, percent)
-		result = SparseMatrix.Zeros(rows, cols)
-		nonZero = (rows * cols * percent).floor
-		nonZero.times do 
-			result.setElement([rand(1..rows), rand(1..cols)], rand(1..100))
-		end
-		result
-	end
-
-	def self.CreateTridiagonal(height, width)end
-
-	def self.Zeros(height, width)
-		SparseMatrix.new(height, width)
-	end
-
-	def self.Identity(size)
-		out = SparseMatrix.new(size, size)
-		(1..size).each { |x| out.setElement([x, x], 1)}
-		out
-	end
-
-	def self.FromHash(input, rows, columns)
-		m = SparseMatrix.Zeros(rows, columns)
-		input.default = 0
-		m.setData(input)
-		m
-	end
-
-	def self.Build(height, width)
-		result = SparseMatrix.new(height, width)
-		(1..height).each do |i|
-			(1..width).each do |j|
-				result.setElement([i,j], (yield i, j))
-			end
-		end
-		result
-	end
-	
+	private
 	
 	def initialize(rows, columns)
 		@matrix = Hash.new(0)
 		@rowCount = rows
 		@colCount = columns
 
-                super #<-- superconstructor necessary for contracts
-                addInvariants
-                addPreconditions
-                addPostconditions
+        super #<-- superconstructor necessary for contracts
+        addInvariants
+        addPreconditions
+        addPostconditions
 	end
 
+	public
+	# --------------------Factory Methods-------------------------
+	def self.CreateMatrixFromPercentFull(rows, cols, percent)
+		SparseMatrixFactory do
+			result = SparseMatrix.Zeros(rows, cols)
+			nonZero = (rows * cols * percent).floor
+			nonZero.times do 
+				result.setElement([rand(1..rows), rand(1..cols)], rand(1..100))
+			end
+			result
+		end
+	end
 
+	def self.CreateTridiagonal(height, width)end
 
+	def self.Zeros(height, width)
+		SparseMatrixFactory { SparseMatrix.new(height, width) }
+	end
+
+	def self.Identity(size)
+		SparseMatrixFactory do
+			out = SparseMatrix.new(size, size)
+			(1..size).each { |x| out.setElement([x, x], 1)}
+			out
+		end
+	end
+
+	def self.FromHash(input, rows, columns)
+		SparseMatrixFactory do	
+			m = SparseMatrix.Zeros(rows, columns)
+			input.default = 0
+			m.setData(input)
+			m
+		end
+	end
+
+	def self.Build(height, width)
+		SparseMatrixFactory do 
+			result = SparseMatrix.new(height, width)
+			(1..height).each do |i|
+				(1..width).each do |j|
+					result.setElement([i,j], (yield i, j))
+				end
+			end
+			result
+		end
+	end
+	
 	# ----------------------------Arithmatic-------------------------------
 
 	# pre matrix should be same size
@@ -91,7 +98,7 @@ class SparseMatrix < Contracted
 	def multiply(matrix, mutate=false)
 		#DOK was a bad data choice for ordered iteration, we could considder a to_a function thtat uses another format possibly
 		if matrix.respond_to? :getElement
-			mutate ? result = self : result = SparseMatrix.Zeros(@rowCount, @colCount)
+			mutate ? result = self : result = SparseMatrix.Zeros(@rowCount, matrix.colCount)
 			(1..@rowCount).each do |i|
 				(1..matrix.colCount).each do |k|
 					sum = 0
@@ -354,6 +361,10 @@ class SparseMatrix < Contracted
 		setElement([key1[0], key2[1]], val2)
 	end
 
+	def self.SparseMatrixFactory()
+		ContractRunner.new(yield)
+	end
+
 	alias * multiply
 	alias + add
 	alias - subtract
@@ -527,7 +538,11 @@ class SparseMatrix < Contracted
                 Proc.new { |result|  !(result ^ determinant == 1 )}
             )
 
-            addPostcondition(:isIdentity, identityDeterminant)
+
+            # I personally dont think that the boolean functions need postconditions...
+            # If we are going to have them, this one and probaly others would need to run post conditions
+            # based on whether they returned true or false
+            #addPostcondition(:isIdentity, identityDeterminant)
         end
 
 end

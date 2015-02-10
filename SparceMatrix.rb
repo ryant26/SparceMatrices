@@ -40,8 +40,6 @@ class SparseMatrix < Contracted
 		end
 	end
 
-	def self.CreateTridiagonal(height, width)end
-
 	def self.Zeros(height, width)
 		SparseMatrixFactory { SparseMatrix.new(height, width) }
 	end

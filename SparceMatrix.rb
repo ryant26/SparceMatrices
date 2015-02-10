@@ -627,12 +627,25 @@ class SparseMatrix < Contracted
                 end
             )
 
+            invertibleDeterminant = Contract.new(
+                "invertible matrix must have inverse determinant inverse",
+                Proc.new do |result|
+                    if result
+                        1E-10 >= inverse.determinant - 1.0 / determinant
+                    else
+                        true # contract does not apply if noninvertible
+                    end
+                end
+            )
+
             isBoolean = Contract.new(
                 "result must be boolean",
                 Proc.new { |result| !!result == result }
             )
 
             addPostcondition(:isIdentity, identityDeterminant)
+
+            addPostcondition(:isInvertable, invertibleDeterminant)
 
             addPostcondition(:isSquare, isBoolean)
             addPostcondition(:isDiagonal, isBoolean)

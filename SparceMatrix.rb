@@ -545,12 +545,61 @@ class SparseMatrix < Contracted
                 end
             )
 
+            equalTransposeDeterminant = Contract.new(
+                "result determinant must be identical to transpose determinant",
+                Proc.new do |result|
+                    10E-10 >= result - transpose.determinant
+                end
+            )
+
+            transposeSizeSwap = Contract.new(
+                "transpose must swap row and column counts",
+                Proc.new do
+                    t = transpose
+                    t.rowCount = @colCount
+                    t.colCount = @rowCount
+                end
+            )
+
+            resultSameDeterminant = Contract.new(
+                "result must have the same determinant",
+                Proc.new do |result|
+                    1E-10 >= result.determinant - determinant
+                end
+            )
+
+            resultSameInvertibility = Contract.new(
+                "result must be same invertibility",
+                Proc.new do |result|
+                    result.isInvertible == isInvertible
+                end
+            )
+
+            dimensionsChanged = Contract.new(
+                "matrix must have changed dimensions",
+                Proc.new do |changed, rows, columns|
+                    changed.rowCount == rows
+                    changed.colCount == columns
+                end
+            )
+
             addPostcondition(:add, resultSameSize)
 
             addPostcondition(:subtract, resultSameSize)
 
             addPostcondition(:multiply, resultScalarMultiplySize)
             addPostcondition(:multiply, resultMultiplySize)
+
+            addPostcondition(:inverse, resultSameSize)
+
+            addPostcondition(:determinant, equalTransposeDeterminant)
+
+            addPostcondition(:transpose, transposeSizeSwap)
+            addPostcondition(:transpose, resultSameDeterminant)
+            addPostcondition(:transpose, resultSameInvertibility)
+
+            addPostcondition(:resize, dimensionsChanged)
+            addPostcondition(:resize!, dimensionsChanged)
 
             ## properties
             
@@ -565,7 +614,19 @@ class SparseMatrix < Contracted
                 end
             )
 
+            isBoolean = Contract.new(
+                "result must be boolean",
+                Proc.new { |result| !!result == result }
+            )
+
             addPostcondition(:isIdentity, identityDeterminant)
+
+            addPostcondition(:isSquare, isBoolean)
+            addPostcondition(:isDiagonal, isBoolean)
+            addPostcondition(:isIdentity, isBoolean)
+            addPostcondition(:isInvertable, isBoolean)
+            addPostcondition(:isSingular, isBoolean)
+            addPostcondition(:isZero, isBoolean)
         end
 
 end

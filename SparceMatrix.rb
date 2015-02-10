@@ -39,13 +39,15 @@ class SparseMatrix < Contracted
 
 	def self.FromHash(input, rows, columns)
 		m = SparseMatrix.Zeros(rows, columns)
-		m.matrix = input
+		input.default = 0
+		m.setData(input)
+		m
 	end
 
 	def self.Build(height, width)
 		result = SparseMatrix.new(height, width)
-		height.times do |i|
-			width.times do |j|
+		(1..height).each do |i|
+			(1..width).each do |j|
 				result.setElement([i,j], (yield i, j))
 			end
 		end
@@ -88,8 +90,8 @@ class SparseMatrix < Contracted
 	# post matrix should be correct dimensions
 	def multiply(matrix)
 		#DOK was a bad data choice for ordered iteration, we could considder a to_a function thtat uses another format possibly
-		result = SparseMatrix.Zeros(@rowCount, @colCount)
 		if matrix.respond_to? :getElement
+			result = SparseMatrix.Zeros(@rowCount, @colCount)
 			(1..@rowCount).each do |i|
 				(1..matrix.colCount).each do |k|
 					sum = 0
@@ -102,6 +104,7 @@ class SparseMatrix < Contracted
 				end
 			end
 		elsif matrix.is_a? Numeric
+			result = clone
 			result.matrix.each { |key, value| result.setElement(key, matrix * value)}
 		end
 		return result
@@ -158,6 +161,9 @@ class SparseMatrix < Contracted
 		@matrix[key]
 	end
 
+	def setData(value)
+		@matrix = value
+	end
 
 	# precond
 	# 	dim must be an integer > 1 or a 2-member array of integer > 1
@@ -181,18 +187,20 @@ class SparseMatrix < Contracted
 
 	def clone()
 		result = SparseMatrix.Zeros(@rowCount, @colCount)
-		@matrix.each { |key, val| result.setElement(key, val)}
+		@matrix.each { |key, val| result.setElement(key.dup, val)}
 		return result
 	end
 
 	#matrix is non-singular (invertable)
 	def inverse()
-		(1/determinant) * clone.adjoint
+		adjoint * (1/determinant)
 	end
 
 	#precondit must be square
 	def adjoint()
-		cofactorMatrix.transpose
+		m = cofactorMatrix
+		m.transpose
+		m
 	end
 
 	def transpose()
@@ -201,12 +209,14 @@ class SparseMatrix < Contracted
 
 	#precondit must be squaare
 	def cofactorMatrix()
-		minorMatrix.matrix.each {|key ,val| minorMatrix.setElement(key, ((-1)**(key[0] + key[1])) * val)}
+		m = minorMatrix
+		m.matrix.each {|key ,val| m.setElement(key, ((-1)**(key[0] + key[1])) * val)}
+		m
 	end
 
 	#precondit must be square
 	def minorMatrix()
-		out = SparseMatrix.Zeros
+		out = SparseMatrix.Zeros(@rowCount, @colCount)
 		(1..@rowCount).each { |i| (1..@colCount).each { |j| out.setElement([i, j], minor(i,j).determinant) } }
 		out
 	end
@@ -214,12 +224,12 @@ class SparseMatrix < Contracted
 	#precondit must be square
 	def minor(rd, cd)
 		#returns the sub matrix for a row and column deletion
-		m = @matrix.reject {|key, val| key[0] == rd || key[1] == cd}.map do |key ,val|
+		m = clone.matrix.reject {|key, val| key[0] == rd || key[1] == cd}.map do |key ,val|
 			key[0] -= 1 if key[0] > rd
 			key[1] -= 1 if key[1] > cd
 			[key, val]
 		end
-		SparseMatrix.FromHash(Hash[m])
+		SparseMatrix.FromHash(Hash[m], @rowCount-1, @colCount-1)
 	end
 
 
@@ -557,3 +567,26 @@ m.setElement([3,2], 1)
 m.setElement([3,3], 3)
 puts m
 puts "Determinant is #{m.determinant} == -12?"
+
+puts "=====================Inversion and Related================"
+m = SparseMatrix.Zeros(3,3)
+m.setElement([1,1], 10)
+m.setElement([1,2], -9)
+m.setElement([1,3], -12)
+m.setElement([2,1], 7)
+m.setElement([2,2], -12)
+m.setElement([2,3], 11)
+m.setElement([3,1], -10)
+m.setElement([3,2], 10)
+m.setElement([3,3], 3)
+puts "---------------------- orig------------------------"
+puts m
+puts "---------------------minor-------------------------------"
+puts m.minorMatrix
+puts "---------------------adjoint-----------------------------"
+a = m.clone
+puts a.adjoint
+puts "---------------------determinant-------------------------"
+puts a.determinant
+puts "---------------------inverse-----------------------------"
+puts a.inverse

@@ -158,6 +158,29 @@ class SparseMatrix < Contracted
             isDiagonal && notOnes.length == 0
         end
 
+        def isInvertable()
+        	# We can test for things like isSquare, but ultimately we need to find the determinant.
+        	# That takes almost as long as just doing the inversion. Something we couldtalk about in the report
+        	# is that we could compute the determinant in here and cache it for when someone decides to acually 
+        	# perform the inversion..
+        	return false if isZero
+        	return false unless isSquare
+        	return false unless determinant !=0
+        	return true
+        end
+
+        def isSingular()
+        	!(isInvertable)
+        end
+
+        def isZero()
+        	@matrix.size == 0
+        end
+
+        #If we are still implementing the tridiagonal class
+        def isTridiagonal()
+        end
+
 	# ---------------------Ruby Overrides (or similar)----------------------
 
 	# does not scale to large sparse matrices - all values printed
@@ -609,6 +632,8 @@ m.setElement([3,2], 10)
 m.setElement([3,3], 3)
 puts "---------------------- orig------------------------"
 puts m
+puts "is invertable? #{m.isInvertable}"
+puts "is singular? #{m.isSingular}"
 puts "---------------------minor-------------------------------"
 puts m.minorMatrix
 puts "---------------------adjoint-----------------------------"

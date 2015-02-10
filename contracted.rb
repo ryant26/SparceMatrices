@@ -108,6 +108,8 @@ class ContractFailure < StandardError
     end
 
     def set_backtrace(backtrace)
+        #TODO this is fragile.  it should reliably remove all contracted.rb
+        #elements of the backtrace.
         set_backtrace_old(backtrace[4..backtrace.length]);
     end
 end

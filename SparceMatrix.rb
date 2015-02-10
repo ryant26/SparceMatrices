@@ -131,17 +131,22 @@ class SparseMatrix < Contracted
 	end
 
 	def transpose()
-		m = clone
+                largestDim = [@rowCount, @colCount].max
+		m = clone.resize!(largestDim, largestDim)
 		m.matrix.each {|key, val| key[0], key[1] = key[1], key[0]}.rehash
-		m
+		m.resize!(@colCount, @rowCount)
 	end
 
 	def transpose!()
+                largestDim = [@rowCount, @colCount].max
+                resize!(largestDim, largestDim)
 		@matrix.each {|key, val| key[0], key[1] = key[1], key[0]}.rehash
+
+                resize!(@colCount, @rowCount)
 		self
 	end
 
-	def resize(rows, colums)
+	def resize(rows, columns)
     	changeMatrixSize(clone, rows, columns)
     end
 
@@ -277,7 +282,7 @@ class SparseMatrix < Contracted
 		end
 	end
 
-	def changeMatrixSize (matrix, rows, colums)
+	def changeMatrixSize (matrix, rows, columns)
 		matrix.setDimensions([rows,columns])
 		matrix.matrix.reject! {|key ,val| key[0] > rows || key[1] > columns}
 		matrix
@@ -472,6 +477,16 @@ class SparseMatrix < Contracted
                 end
             )
 
+            matrixSquare = Contract.new(
+                "input matrix must be square",
+                Proc.new { isSquare }
+            )
+
+            nonzeroDeterminant = Contract.new(
+                "input matrix must have nonzero determinant",
+                Proc.new { determinant != 0 }
+            )
+
             addPrecondition(:add, inputIsMatrix)
             addPrecondition(:add, inputSameSize)
 
@@ -480,6 +495,12 @@ class SparseMatrix < Contracted
 
             addPrecondition(:multiply, numericOrMatrix)
             addPrecondition(:multiply, matrixCompatibleMultiply)
+
+            addPrecondition(:determinant, matrixSquare)
+
+            addPrecondition(:inverse, matrixSquare)
+            addPrecondition(:inverse, nonzeroDeterminant)
+
 
         end
 
@@ -535,14 +556,16 @@ class SparseMatrix < Contracted
             
             identityDeterminant = Contract.new(
                 "identity matrix must have determinant 1",
-                Proc.new { |result|  !(result ^ determinant == 1 )}
+                Proc.new do |result|
+                    if result
+                        determinant == 1 
+                    else
+                        true # return true if result is false
+                    end
+                end
             )
 
-
-            # I personally dont think that the boolean functions need postconditions...
-            # If we are going to have them, this one and probaly others would need to run post conditions
-            # based on whether they returned true or false
-            #addPostcondition(:isIdentity, identityDeterminant)
+            addPostcondition(:isIdentity, identityDeterminant)
         end
 
 end
